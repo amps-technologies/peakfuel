@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "leaflet/dist/leaflet.css";
 
 :root {
   --background: #ffffff;
@@ -11,6 +12,19 @@
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
+
+html {
+  overflow-y: scroll;
+}
+
+button,
+[role="button"],
+a {
+  cursor: pointer;
+}
+
+/* @import "tailwindcss/preflight";
+@import "tailwindcss/utilities"; */
 
 @media (prefers-color-scheme: dark) {
   :root {
