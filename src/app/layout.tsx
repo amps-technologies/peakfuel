@@ -4,6 +4,7 @@ import "./globals.css";
 import Navbar from "@/components/Navbar";
 import PageTransition from "@/components/PageTransitions";
 import ToastContainer from "@/components/Toast";
+import { Suspense } from "react";
 
 const geist = Geist({ subsets: ["latin"] });
 
@@ -22,7 +23,12 @@ export default function RootLayout({
       <body
         className={`${geist.className} bg-gray-50 text-gray-900 min-h-screen`}
       >
-        <Navbar />
+        <Suspense
+          fallback={<div className="h-14 bg-white border-b border-gray-200" />}
+        >
+          <Navbar />
+        </Suspense>
+        {/* <Navbar /> */}
         <main>
           <PageTransition>{children}</PageTransition>
         </main>

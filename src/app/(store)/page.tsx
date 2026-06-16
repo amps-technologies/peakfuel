@@ -1,9 +1,10 @@
 "use client";
+import { Suspense } from "react";
 import { useEffect, useState, useMemo } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import ProductCard from "@/components/ProductCard";
-import { Flame, Truck, Shield, Search, X } from "lucide-react";
+import { Flame, Truck, Shield } from "lucide-react";
 import type { Product } from "@/types";
 
 const catMap: Record<string, string> = {
@@ -23,7 +24,7 @@ const categoryPills = [
   { label: "🧯 Safety", value: "safety" },
 ];
 
-export default function ShopPage() {
+function ShopContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const category = searchParams.get("category") ?? "";
@@ -35,7 +36,6 @@ export default function ShopPage() {
 
   const supabase = createClient();
 
-  // Fetch whenever category changes — search filters client-side
   useEffect(() => {
     const fetchProducts = async () => {
       setFadeIn(false);
@@ -64,7 +64,6 @@ export default function ShopPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [category]);
 
-  // Filter by search query client-side
   const products = useMemo(() => {
     if (!searchQuery.trim()) return allProducts;
     const q = searchQuery.toLowerCase();
@@ -88,7 +87,7 @@ export default function ShopPage() {
   return (
     <div className="max-w-6xl mx-auto px-4 py-6">
       {/* Hero */}
-      <div className="bg-linear-to-r from-sky-500 to-sky-600 rounded-2xl p-6 mb-6 text-white flex items-center justify-between">
+      <div className="bg-gradient-to-r from-sky-500 to-sky-600 rounded-2xl p-6 mb-6 text-white flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold mb-1">Fast LPG Delivery</h1>
           <p className="text-sky-100 text-sm mb-4">
@@ -130,7 +129,6 @@ export default function ShopPage() {
       {/* Search result info */}
       {searchQuery && (
         <div className="flex items-center gap-2 mb-4 text-sm text-gray-500">
-          <Search size={14} />
           <span>
             {products.length} result{products.length !== 1 ? "s" : ""} for
             <strong className="text-gray-800 ml-1">
@@ -144,9 +142,9 @@ export default function ShopPage() {
               const url = params.toString() ? `/?${params.toString()}` : "/";
               router.push(url, { scroll: false });
             }}
-            className="ml-1 text-sky-500 hover:text-sky-600 flex items-center gap-1 cursor-pointer"
+            className="ml-1 text-sky-500 hover:text-sky-600 cursor-pointer"
           >
-            <X size={13} /> Clear
+            Clear
           </button>
         </div>
       )}
@@ -193,5 +191,27 @@ export default function ShopPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function ShopPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="max-w-6xl mx-auto px-4 py-6">
+          <div className="h-40 bg-gray-100 rounded-2xl animate-pulse mb-6" />
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+            {Array.from({ length: 10 }).map((_, i) => (
+              <div
+                key={i}
+                className="h-48 bg-gray-100 rounded-xl animate-pulse"
+              />
+            ))}
+          </div>
+        </div>
+      }
+    >
+      <ShopContent />
+    </Suspense>
   );
 }
