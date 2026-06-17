@@ -9,7 +9,7 @@ import { Suspense } from "react";
 const geist = Geist({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "GasGo — LPG Delivery",
+  title: "Peak Fuel — LPG Delivery",
   description: "Fast LPG delivery to your door",
 };
 

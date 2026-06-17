@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import ProductCard from "@/components/ProductCard";
 import { Flame, Truck, Shield } from "lucide-react";
 import type { Product } from "@/types";
+import Image from "next/image";
 
 const catMap: Record<string, string> = {
   tanks: "tank",
@@ -105,7 +106,8 @@ function ShopContent() {
             </span>
           </div>
         </div>
-        <div className="text-8xl opacity-20 select-none">🛢️</div>
+        {/* <div className="text-8xl opacity-20 select-none">🛢️</div> */}
+        <Image src="/logo.png" alt="logo" height={80} width={80} />
       </div>
 
       {/* Category pills */}

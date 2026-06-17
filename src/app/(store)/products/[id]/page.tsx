@@ -42,6 +42,8 @@ export default async function ProductPage({ params }: Props) {
               src={product.image_url}
               alt={product.name}
               className="h-full w-full object-cover"
+              height={500}
+              width={500}
             />
           ) : (
             (categoryEmoji[product.category] ?? "📦")

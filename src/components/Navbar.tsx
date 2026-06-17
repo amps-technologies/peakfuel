@@ -22,6 +22,7 @@ import {
 } from "react";
 import CartDrawer from "./CartDrawer";
 import type { User } from "@supabase/supabase-js";
+import Image from "next/image";
 
 export default function Navbar() {
   const count = useCartStore((s) => s.count());
@@ -127,10 +128,11 @@ export default function Navbar() {
             href="/"
             className="flex items-center gap-2 font-bold text-sky-600 text-lg shrink-0 cursor-pointer"
           >
-            <div className="w-7 h-7 bg-sky-500 rounded-lg flex items-center justify-center">
-              <Flame size={16} className="text-white" />
+            <div className="w-7 h-7 rounded-lg flex items-center justify-center">
+              {/* <Flame size={16} className="text-white" /> */}
+              <Image src="/logo.png" alt="log" height={500} width={500} />
             </div>
-            Gas<span className="text-gray-900">Go</span>
+            Peak<span className="text-gray-900">Fuel</span>
           </Link>
 
           {/* Live search input */}

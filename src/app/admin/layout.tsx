@@ -87,11 +87,11 @@ export default async function AdminLayout({
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="bg-white border-b border-gray-100 px-6 py-3 flex items-center gap-3">
+      {/* <div className="bg-white border-b border-gray-100 px-6 py-3 flex items-center gap-3">
         <span className="text-lg">🔥</span>
         <span className="font-semibold text-gray-800">GasGo Admin</span>
         <span className="ml-auto text-xs text-gray-400">{user.email}</span>
-      </div>
+      </div> */}
       {children}
     </div>
   );
