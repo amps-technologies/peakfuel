@@ -2,7 +2,6 @@
 import Link from "next/link";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import {
-  Flame,
   ShoppingCart,
   MapPin,
   LogOut,
@@ -121,22 +120,24 @@ export default function Navbar() {
 
   return (
     <>
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
-        <div className="max-w-6xl mx-auto px-4 h-14 flex items-center gap-4">
+      <header className="bg-white border-b border-gray-200 sticky top-0 z-50 overflow-x-hidden">
+        <div className="max-w-6xl mx-auto px-4 h-14 flex items-center gap-2 sm:gap-4">
           {/* Logo */}
           <Link
             href="/"
-            className="flex items-center gap-2 font-bold text-sky-600 text-lg shrink-0 cursor-pointer"
+            className="flex items-center gap-2 font-semibold text-sky-600 text-base sm:text-lg shrink-0 cursor-pointer"
           >
-            <div className="w-7 h-7 rounded-lg flex items-center justify-center">
-              {/* <Flame size={16} className="text-white" /> */}
+            {/* Logo */}
+            <div className="w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center">
               <Image src="/logo.png" alt="log" height={500} width={500} />
             </div>
-            Peak<span className="text-gray-900">Fuel</span>
+            <span className="hidden sm:inline">
+              Peak<span className="text-gray-900">Fuel</span>
+            </span>
           </Link>
 
-          {/* Live search input */}
-          <div className="flex-1 max-w-sm relative">
+          {/* Search */}
+          <div className="flex-1 min-w-0 relative">
             <Search
               size={14}
               className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
@@ -145,7 +146,7 @@ export default function Navbar() {
               type="text"
               value={searchInput}
               onChange={handleInputChange}
-              placeholder="Search products..."
+              placeholder="Search..."
               className="w-full pl-8 pr-8 py-1.5 text-sm border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-sky-400 cursor-text transition-shadow duration-150"
             />
             {searchInput && (
@@ -160,19 +161,21 @@ export default function Navbar() {
           </div>
 
           {/* Actions */}
-          <div className="flex items-center gap-2 ml-auto">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <Link
               href="/track"
-              className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+              className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
             >
-              <MapPin size={15} /> Track
+              <MapPin size={15} />
+              <span className="hidden sm:inline">Track</span>
             </Link>
 
             <button
               onClick={() => setCartOpen(true)}
-              className="relative flex items-center gap-1.5 px-3 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+              className="relative flex items-center gap-1.5 px-2 sm:px-3 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
             >
-              <ShoppingCart size={15} /> Cart
+              <ShoppingCart size={15} />
+              <span className="hidden sm:inline">Cart</span>
               {mounted && count > 0 && (
                 <span className="absolute -top-1.5 -right-1.5 bg-sky-500 text-white text-xs w-4 h-4 rounded-full flex items-center justify-center">
                   {count}
@@ -181,10 +184,10 @@ export default function Navbar() {
             </button>
 
             {mounted && user ? (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 sm:gap-2">
                 <Link
                   href="/admin"
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+                  className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
                 >
                   <Package size={15} /> Admin
                 </Link>
@@ -193,7 +196,7 @@ export default function Navbar() {
                 </span>
                 <button
                   onClick={signOut}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+                  className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
                 >
                   <LogOut size={15} />
                 </button>
@@ -201,30 +204,31 @@ export default function Navbar() {
             ) : mounted ? (
               <Link
                 href="/auth"
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-sky-500 text-white rounded-lg hover:bg-sky-600 transition-colors cursor-pointer"
+                className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 text-sm bg-sky-500 text-white rounded-lg hover:bg-sky-600 transition-colors cursor-pointer"
               >
-                <UserIcon size={15} /> Sign in
+                <UserIcon size={15} />
+                <span className="hidden sm:inline">Sign in</span>
               </Link>
             ) : (
-              <div className="w-20 h-8 bg-gray-100 rounded-lg animate-pulse" />
+              <div className="w-8 sm:w-20 h-8 bg-gray-100 rounded-lg animate-pulse" />
             )}
           </div>
         </div>
 
-        {/* Category nav — only on shop page */}
+        {/* Category nav */}
         {isShop && (
-          <nav className="bg-sky-500">
-            <div className="max-w-6xl mx-auto px-4 flex overflow-x-auto">
+          <nav className="bg-sky-500 overflow-x-auto">
+            <div className="max-w-6xl mx-auto px-4 flex">
               {navCategories.map((item) => (
                 <button
                   key={item.value}
                   onClick={() => goCategory(item.value)}
-                  className={`px-4 py-2 text-sm border-b-2 whitespace-nowrap transition-colors duration-150 cursor-pointer
-                    ${
-                      activeCategory === item.value
-                        ? "text-white border-white font-medium"
-                        : "text-sky-100 border-transparent hover:text-white hover:border-white"
-                    }`}
+                  className={`px-3 sm:px-4 py-2 text-xs sm:text-sm border-b-2 whitespace-nowrap transition-colors duration-150 cursor-pointer
+              ${
+                activeCategory === item.value
+                  ? "text-white border-white font-medium"
+                  : "text-sky-100 border-transparent hover:text-white hover:border-white"
+              }`}
                 >
                   {item.label}
                 </button>

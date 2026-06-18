@@ -8,32 +8,17 @@ export default function PageTransition({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const [style, setStyle] = useState({
-    opacity: 1,
-    transform: "translateY(0px)",
-  });
+  const [key, setKey] = useState(pathname);
   const prevPath = useRef(pathname);
 
   useEffect(() => {
     if (prevPath.current === pathname) return;
     prevPath.current = pathname;
-
-    setStyle({ opacity: 0, transform: "translateY(8px)" });
-
-    const t = setTimeout(() => {
-      setStyle({ opacity: 1, transform: "translateY(0px)" });
-    }, 180);
-
-    return () => clearTimeout(t);
+    setKey(pathname);
   }, [pathname]);
 
   return (
-    <div
-      style={{
-        ...style,
-        transition: "opacity 250ms ease-out, transform 250ms ease-out",
-      }}
-    >
+    <div key={key} className="animate-fade-in">
       {children}
     </div>
   );

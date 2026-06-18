@@ -16,6 +16,7 @@ import {
   Truck,
   Calendar,
   BarChart3,
+  ArrowLeft,
 } from "lucide-react";
 import type { Product, Order, OrderStatus, Category } from "@/types";
 import Link from "next/link";
@@ -49,6 +50,23 @@ const emptyForm = {
   image_url: "",
   in_stock: true,
 };
+
+interface OrderItemRaw {
+  order_id: string;
+  quantity: number;
+  unit_price: number;
+  product:
+    | { name: string; category: string }[]
+    | { name: string; category: string }
+    | null;
+}
+
+interface OrderItemRow {
+  order_id: string;
+  quantity: number;
+  unit_price: number;
+  product: { name: string; category: string } | null;
+}
 
 // ── Update this once you upload the APK ──────────────────────
 const RIDER_APK_URL =
@@ -97,14 +115,7 @@ export default function AdminPage() {
     setProducts((data as Product[]) ?? []);
   }, [supabase]);
 
-  const [orderItems, setOrderItems] = useState<
-    {
-      order_id: string;
-      quantity: number;
-      unit_price: number;
-      product: { name: string; category: string } | null;
-    }[]
-  >([]);
+  const [orderItems, setOrderItems] = useState<OrderItemRow[]>([]);
 
   const fetchOrderItems = useCallback(async () => {
     const { data } = await supabase
@@ -112,7 +123,19 @@ export default function AdminPage() {
       .select(
         "order_id, quantity, unit_price, product:products(name, category)",
       );
-    setOrderItems((data as typeof orderItems) ?? []);
+
+    const normalized: OrderItemRow[] = ((data as OrderItemRaw[]) ?? []).map(
+      (item) => ({
+        order_id: item.order_id,
+        quantity: item.quantity,
+        unit_price: item.unit_price,
+        product: Array.isArray(item.product)
+          ? (item.product[0] ?? null)
+          : item.product,
+      }),
+    );
+
+    setOrderItems(normalized);
   }, [supabase]);
 
   useEffect(() => {
@@ -304,7 +327,17 @@ export default function AdminPage() {
   return (
     <div className="flex min-h-screen bg-gray-50">
       {/* Sidebar */}
+
       <aside className="w-56 bg-white border-r border-gray-100 flex flex-col shrink-0">
+        <div className="p-3 border-t border-gray-100">
+          <Link
+            href="/"
+            className="flex items-center gap-2 text-sm text-gray-500 hover:text-sky-600 cursor-pointer transition-colors px-2 py-1.5 rounded-lg hover:bg-gray-50"
+          >
+            <ArrowLeft size={14} />
+            Back to store
+          </Link>
+        </div>
         <div className="p-4 border-b border-gray-100">
           <div className="flex items-center gap-2 text-sky-600 font-bold">
             {/* <Flame size={18} /> */}
@@ -652,27 +685,33 @@ export default function AdminPage() {
                     No revenue data for this range.
                   </p>
                 ) : (
-                  <div className="flex items-end gap-1.5 h-32">
-                    {reportData.revenueByDay.map((d) => (
-                      <div
-                        key={d.day}
-                        className="flex-1 flex flex-col items-center justify-end gap-1 group relative"
-                      >
-                        <div className="text-[10px] text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity absolute -top-5 whitespace-nowrap">
-                          ₱{d.revenue.toLocaleString()}
-                        </div>
+                  <div
+                    className="flex items-end gap-1.5"
+                    style={{ height: "140px" }}
+                  >
+                    {reportData.revenueByDay.map((d) => {
+                      const barHeight = Math.max((d.pct / 100) * 110, 6);
+                      return (
                         <div
-                          className="w-full bg-sky-400 hover:bg-sky-500 rounded-t transition-colors cursor-default"
-                          style={{ height: `${Math.max(d.pct, 4)}%` }}
-                        />
-                        <span className="text-[10px] text-gray-400">
-                          {new Date(d.day).toLocaleDateString("en-PH", {
-                            month: "short",
-                            day: "numeric",
-                          })}
-                        </span>
-                      </div>
-                    ))}
+                          key={d.day}
+                          className="flex-1 flex flex-col items-center justify-end gap-1 group relative h-full"
+                        >
+                          <div className="text-[10px] text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity absolute -top-1 whitespace-nowrap bg-white px-1 rounded shadow-sm z-10">
+                            ₱{d.revenue.toLocaleString()}
+                          </div>
+                          <div
+                            className="w-full bg-sky-400 hover:bg-sky-500 rounded-t transition-colors cursor-default"
+                            style={{ height: `${barHeight}px` }}
+                          />
+                          <span className="text-[10px] text-gray-400 shrink-0">
+                            {new Date(d.day).toLocaleDateString("en-PH", {
+                              month: "short",
+                              day: "numeric",
+                            })}
+                          </span>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
