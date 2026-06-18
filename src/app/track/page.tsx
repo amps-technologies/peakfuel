@@ -9,6 +9,7 @@ import {
   Clock,
   Calendar,
   ChevronLeft,
+  ArrowRight,
 } from "lucide-react";
 import type { Order, OrderStatus } from "@/types";
 
@@ -119,7 +120,7 @@ export default function TrackLookupPage() {
       </div>
 
       {/* Status tabs */}
-      <div className="flex gap-0 overflow-x-auto border-b border-gray-100 -mx-1 px-1">
+      {/* <div className="flex gap-0 overflow-x-auto border-b border-gray-100 -mx-1 px-1">
         {STATUS_TABS.map((tabItem) => (
           <button
             key={tabItem.value}
@@ -137,10 +138,10 @@ export default function TrackLookupPage() {
             {tabItem.label}
           </button>
         ))}
-      </div>
+      </div> */}
 
       {/* Date range filter */}
-      <div className="flex items-center gap-2 bg-gray-50 rounded-xl px-3.5 py-2.5">
+      {/* <div className="flex items-center gap-2 bg-gray-50 rounded-xl px-3.5 py-2.5">
         <Calendar size={15} className="text-gray-400 shrink-0" />
         <input
           type="date"
@@ -164,6 +165,50 @@ export default function TrackLookupPage() {
           max={today}
           className="flex-1 text-sm bg-transparent focus:outline-none cursor-pointer min-w-0"
         />
+      </div> */}
+
+      {/* Filters — status dropdown + date range */}
+      <div className="flex items-center gap-2.5 flex-wrap">
+        <select
+          value={statusFilter}
+          onChange={(e) => {
+            setStatusFilter(e.target.value as OrderStatus | "all");
+            setPage(1);
+          }}
+          className="px-3.5 py-2.5 text-sm border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-sky-400 cursor-pointer font-medium text-gray-700 shrink-0"
+        >
+          {STATUS_TABS.map((tabItem) => (
+            <option key={tabItem.value} value={tabItem.value}>
+              {tabItem.label}
+            </option>
+          ))}
+        </select>
+
+        <div className="flex items-center gap-2 bg-gray-50 rounded-xl px-3.5 py-2.5 flex-1 min-w-55">
+          <Calendar size={15} className="text-gray-400 shrink-0" />
+          <input
+            type="date"
+            value={dateFrom}
+            onChange={(e) => {
+              setDateFrom(e.target.value);
+              setPage(1);
+            }}
+            max={dateTo}
+            className="flex-1 text-sm bg-transparent focus:outline-none cursor-pointer min-w-0"
+          />
+          <ArrowRight size={13} className="text-gray-300 shrink-0" />
+          <input
+            type="date"
+            value={dateTo}
+            onChange={(e) => {
+              setDateTo(e.target.value);
+              setPage(1);
+            }}
+            min={dateFrom}
+            max={today}
+            className="flex-1 text-sm bg-transparent focus:outline-none cursor-pointer min-w-0"
+          />
+        </div>
       </div>
 
       {/* My orders */}

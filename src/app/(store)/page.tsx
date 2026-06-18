@@ -106,26 +106,35 @@ function ShopContent() {
             </span>
           </div>
         </div>
-        {/* <div className="text-8xl opacity-20 select-none">🛢️</div> */}
         <Image src="/logo.png" alt="logo" height={80} width={80} />
       </div>
 
-      {/* Category pills */}
-      <div className="flex gap-2 mb-4 flex-wrap">
-        {categoryPills.map((pill) => (
-          <button
-            key={pill.value}
-            onClick={() => switchCategory(pill.value)}
-            className={`px-4 py-1.5 rounded-full text-sm border transition-all duration-200 cursor-pointer
-              ${
-                category === pill.value
-                  ? "bg-sky-500 text-white border-sky-500 scale-105"
-                  : "bg-white text-gray-600 border-gray-200 hover:border-sky-300 hover:text-sky-500"
-              }`}
-          >
-            {pill.label}
-          </button>
-        ))}
+      {/*
+        Category pills — sticky below navbar.
+        IMPORTANT: overflow-x-auto must NOT live on the same element as
+        `sticky`. Setting overflow-x to anything but `visible` forces the
+        browser to also compute overflow-y as a scroll container for sticky
+        purposes, which silently breaks `position: sticky` on this element.
+        Fix: the sticky div only handles positioning/background; a separate
+        inner div (no `sticky`) owns the horizontal scroll.
+      */}
+      <div className="sticky top-14 z-40 bg-gray-50 -mx-4 px-4 py-2 mb-2">
+        <div className="flex gap-2 flex-wrap sm:flex-nowrap overflow-x-auto">
+          {categoryPills.map((pill) => (
+            <button
+              key={pill.value}
+              onClick={() => switchCategory(pill.value)}
+              className={`px-4 py-1.5 rounded-full text-sm border transition-all duration-200 cursor-pointer shrink-0
+        ${
+          category === pill.value
+            ? "bg-sky-500 text-white border-sky-500 scale-105"
+            : "bg-white text-gray-600 border-gray-200 hover:border-sky-300 hover:text-sky-500"
+        }`}
+            >
+              {pill.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Search result info */}

@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import { Geist } from "next/font/google";
+import { Suspense } from "react";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
 import PageTransition from "@/components/PageTransitions";
 import ToastContainer from "@/components/Toast";
-import { Suspense } from "react";
+import CartDrawer from "@/components/CartDrawer";
 
 const geist = Geist({ subsets: ["latin"] });
 
@@ -28,10 +29,10 @@ export default function RootLayout({
         >
           <Navbar />
         </Suspense>
-        {/* <Navbar /> */}
         <main>
           <PageTransition>{children}</PageTransition>
         </main>
+        <CartDrawer />
         <ToastContainer />
       </body>
     </html>

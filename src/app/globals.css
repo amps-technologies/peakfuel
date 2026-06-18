@@ -1,21 +1,27 @@
 @import "tailwindcss";
-@import "leaflet/dist/leaflet.css";
 
 :root {
   --background: #ffffff;
   --foreground: #171717;
 }
 
-/* @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-} */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
 
 html {
   overflow-y: scroll;
   scrollbar-gutter: stable;
+}
+
+body {
+  overflow-x: hidden;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
 }
 
 ::-webkit-scrollbar {
@@ -36,14 +42,16 @@ html {
   background: #9ca3af;
 }
 
-body {
-  overflow-x: hidden;
-}
-
 button,
 [role="button"],
 a {
   cursor: pointer;
+}
+
+header.app-navbar {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 50;
 }
 
 @keyframes fadeIn {
@@ -57,17 +65,4 @@ a {
 
 .animate-fade-in {
   animation: fadeIn 200ms ease-out;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
 }

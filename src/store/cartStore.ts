@@ -1,70 +1,60 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
-import { CartItem, Product } from "@/types";
+import type { Product } from "@/types";
+
+interface CartItem {
+  product: Product;
+  quantity: number;
+}
 
 interface CartStore {
   items: CartItem[];
-  addItem: (product: Product) => void;
+  isCartOpen: boolean;
+  addItem: (product: Product, quantity?: number) => void;
   removeItem: (productId: string) => void;
-  updateQty: (productId: string, qty: number) => void;
+  updateQty: (productId: string, quantity: number) => void;
   clearCart: () => void;
   total: () => number;
-  count: () => number;
+  setCartOpen: (open: boolean) => void;
 }
 
-export const useCartStore = create<CartStore>()(
-  persist(
-    (set, get) => ({
-      items: [],
+export const useCartStore = create<CartStore>((set, get) => ({
+  items: [],
+  isCartOpen: false,
 
-      addItem: (product) => {
-        const existing = get().items.find((i) => i.product.id === product.id);
-        if (existing) {
-          set({
-            items: get().items.map((i) =>
-              i.product.id === product.id
-                ? { ...i, quantity: i.quantity + 1 }
-                : i,
-            ),
-          });
-        } else {
-          set({ items: [...get().items, { product, quantity: 1 }] });
-        }
-      },
+  addItem: (product, quantity = 1) => {
+    set((state) => {
+      const existing = state.items.find((i) => i.product.id === product.id);
+      if (existing) {
+        return {
+          items: state.items.map((i) =>
+            i.product.id === product.id
+              ? { ...i, quantity: i.quantity + quantity }
+              : i,
+          ),
+        };
+      }
+      return { items: [...state.items, { product, quantity }] };
+    });
+  },
 
-      removeItem: (productId) => {
-        const existing = get().items.find((i) => i.product.id === productId);
-        if (!existing) return;
-        if (existing.quantity > 1) {
-          set({
-            items: get().items.map((i) =>
-              i.product.id === productId
-                ? { ...i, quantity: i.quantity - 1 }
-                : i,
-            ),
-          });
-        } else {
-          set({ items: get().items.filter((i) => i.product.id !== productId) });
-        }
-      },
+  removeItem: (productId) => {
+    set((state) => ({
+      items: state.items.filter((i) => i.product.id !== productId),
+    }));
+  },
 
-      updateQty: (productId, qty) => {
-        if (qty <= 0) {
-          set({ items: get().items.filter((i) => i.product.id !== productId) });
-        } else {
-          set({
-            items: get().items.map((i) =>
-              i.product.id === productId ? { ...i, quantity: qty } : i,
-            ),
-          });
-        }
-      },
+  updateQty: (productId, quantity) => {
+    set((state) => ({
+      items: state.items.map((i) =>
+        i.product.id === productId ? { ...i, quantity } : i,
+      ),
+    }));
+  },
 
-      clearCart: () => set({ items: [] }),
-      total: () =>
-        get().items.reduce((sum, i) => sum + i.product.price * i.quantity, 0),
-      count: () => get().items.reduce((sum, i) => sum + i.quantity, 0),
-    }),
-    { name: "gasgo-cart" },
-  ),
-);
+  clearCart: () => set({ items: [] }),
+
+  total: () =>
+    get().items.reduce((sum, i) => sum + i.product.price * i.quantity, 0),
+
+  setCartOpen: (open) => set({ isCartOpen: open }),
+}));
