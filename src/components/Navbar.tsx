@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, startTransition } from "react";
+import { useState, useEffect, startTransition, Suspense } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
@@ -17,49 +17,23 @@ import { createClient } from "@/lib/supabase/client";
 import { useCartStore } from "@/store/cartStore";
 import type { User } from "@supabase/supabase-js";
 
-function NavbarInner() {
-  const pathname = usePathname();
-  const router = useRouter();
+// ── Only the search input needs useSearchParams ──────────────
+// Isolating it here means only this tiny component can suspend,
+// not the entire header. The sticky <header> shell never suspends.
+function SearchInput() {
   const searchParams = useSearchParams();
-  const supabase = createClient();
-  const { items, setCartOpen } = useCartStore();
+  const router = useRouter();
+  const pathname = usePathname();
 
-  const [user, setUser] = useState<User | null>(null);
-  const [mounted, setMounted] = useState(false);
-  const [searchInput, setSearchInput] = useState("");
-
-  const isShop = pathname === "/";
+  const [searchInput, setSearchInput] = useState(searchParams.get("q") ?? "");
   const activeCategory = searchParams.get("category") ?? "";
-  const count = items.reduce((sum, i) => sum + i.quantity, 0);
+  const isShop = pathname === "/";
 
-  useEffect(() => {
-    let isMounted = true;
-
-    supabase.auth.getUser().then(({ data }) => {
-      if (isMounted) {
-        setUser(data.user);
-        setMounted(true);
-      }
-    });
-
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
-      setUser(session?.user ?? null);
-    });
-
-    return () => {
-      isMounted = false;
-      sub.subscription.unsubscribe();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Sync search input with URL param without causing ref-during-render warning
   useEffect(() => {
     const q = searchParams.get("q") ?? "";
     startTransition(() => setSearchInput(q));
   }, [searchParams]);
 
-  // Debounced search → URL update
   useEffect(() => {
     if (!isShop) return;
     const handle = setTimeout(() => {
@@ -67,10 +41,8 @@ function NavbarInner() {
       if (activeCategory) params.set("category", activeCategory);
       if (searchInput.trim()) params.set("q", searchInput.trim());
       const url = params.toString() ? `/?${params.toString()}` : "/";
-      if (
-        url !==
-        `${pathname}${searchParams.toString() ? `?${searchParams.toString()}` : ""}`
-      ) {
+      const current = `${pathname}${searchParams.toString() ? `?${searchParams.toString()}` : ""}`;
+      if (url !== current) {
         router.push(url, { scroll: false });
       }
     }, 300);
@@ -78,19 +50,105 @@ function NavbarInner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchInput]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchInput(e.target.value);
-  };
+  return (
+    <div className="flex-1 min-w-0 relative">
+      <Search
+        size={14}
+        className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+      />
+      <input
+        type="text"
+        value={searchInput}
+        onChange={(e) => setSearchInput(e.target.value)}
+        placeholder="Search products..."
+        className="w-full pl-8 pr-8 py-1.5 text-sm border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-sky-400 cursor-text transition-shadow duration-150"
+      />
+      {searchInput && (
+        <button
+          type="button"
+          onClick={() => setSearchInput("")}
+          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-500 transition-colors cursor-pointer"
+        >
+          <X size={13} />
+        </button>
+      )}
+    </div>
+  );
+}
 
-  const clearSearch = () => setSearchInput("");
+// ── Back-to-store also needs pathname ────────────────────────
+function BackButton() {
+  const router = useRouter();
+  return (
+    <div className="flex-1 min-w-0">
+      <button
+        onClick={() => router.push("/")}
+        className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 hover:text-sky-600 hover:bg-sky-50 rounded-lg transition-colors cursor-pointer"
+      >
+        <ArrowLeft size={15} />
+        Back to store
+      </button>
+    </div>
+  );
+}
+
+// ── Center area — picks search or back button ────────────────
+function NavCenter() {
+  const pathname = usePathname();
+  const isShop = pathname === "/";
+
+  if (isShop) {
+    return (
+      <Suspense
+        fallback={
+          <div className="flex-1 min-w-0 h-8 bg-gray-100 rounded-lg animate-pulse" />
+        }
+      >
+        <SearchInput />
+      </Suspense>
+    );
+  }
+
+  return <BackButton />;
+}
+
+// ── Main navbar shell — never suspends, always sticky ───────
+export default function Navbar() {
+  const supabase = createClient();
+  const { items, setCartOpen } = useCartStore();
+
+  const [user, setUser] = useState<User | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  const count = items.reduce((sum, i) => sum + i.quantity, 0);
+
+  useEffect(() => {
+    let active = true;
+    supabase.auth.getUser().then(({ data }) => {
+      if (active) {
+        setUser(data.user);
+        setMounted(true);
+      }
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
+      setUser(session?.user ?? null);
+    });
+    return () => {
+      active = false;
+      sub.subscription.unsubscribe();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const signOut = async () => {
     await supabase.auth.signOut({ scope: "local" });
-    router.push("/");
+    window.location.href = "/";
   };
 
   return (
-    <header className="app-navbar bg-white border-b border-gray-200 sticky top-0 z-50 overflow-x-hidden">
+    // This <header> is now ALWAYS rendered — never inside a Suspense
+    // boundary that could swap it for a fallback <div>. sticky works.
+    <header className="app-navbar bg-white border-b border-gray-200 sticky top-0 z-50">
       <div className="max-w-6xl mx-auto px-4 h-14 flex items-center gap-2 sm:gap-4">
         {/* Logo */}
         <Link
@@ -105,41 +163,8 @@ function NavbarInner() {
           </span>
         </Link>
 
-        {/* Context-aware center area */}
-        {isShop ? (
-          <div className="flex-1 min-w-0 relative">
-            <Search
-              size={14}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
-            />
-            <input
-              type="text"
-              value={searchInput}
-              onChange={handleInputChange}
-              placeholder="Search products..."
-              className="w-full pl-8 pr-8 py-1.5 text-sm border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-sky-400 cursor-text transition-shadow duration-150"
-            />
-            {searchInput && (
-              <button
-                type="button"
-                onClick={clearSearch}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-500 transition-colors cursor-pointer"
-              >
-                <X size={13} />
-              </button>
-            )}
-          </div>
-        ) : (
-          <div className="flex-1 min-w-0">
-            <button
-              onClick={() => router.push("/")}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 hover:text-sky-600 hover:bg-sky-50 rounded-lg transition-colors cursor-pointer"
-            >
-              <ArrowLeft size={15} />
-              Back to store
-            </button>
-          </div>
-        )}
+        {/* Center — search or back button, Suspense only wraps SearchInput */}
+        <NavCenter />
 
         {/* Actions */}
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
@@ -197,8 +222,4 @@ function NavbarInner() {
       </div>
     </header>
   );
-}
-
-export default function Navbar() {
-  return <NavbarInner />;
 }

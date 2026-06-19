@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Geist } from "next/font/google";
-import { Suspense } from "react";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
 import PageTransition from "@/components/PageTransitions";
@@ -10,7 +9,7 @@ import CartDrawer from "@/components/CartDrawer";
 const geist = Geist({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Peak Fuel — LPG Delivery",
+  title: "PeakFuel — LPG Delivery",
   description: "Fast LPG delivery to your door",
 };
 
@@ -24,11 +23,14 @@ export default function RootLayout({
       <body
         className={`${geist.className} bg-gray-50 text-gray-900 min-h-screen`}
       >
-        <Suspense
-          fallback={<div className="h-14 bg-white border-b border-gray-200" />}
-        >
-          <Navbar />
-        </Suspense>
+        {/*
+          Navbar renders its own sticky <header> directly — no Suspense
+          wrapper here. Any suspending hooks (useSearchParams) are isolated
+          to inner components with their own Suspense boundaries inside
+          Navbar.tsx, so this <header> is always present in the DOM and
+          `sticky top-0` works as expected.
+        */}
+        <Navbar />
         <main>
           <PageTransition>{children}</PageTransition>
         </main>
