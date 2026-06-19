@@ -3,7 +3,6 @@ import { useState, useEffect, startTransition, Suspense } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
-  Flame,
   Search,
   X,
   MapPin,
@@ -16,6 +15,7 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { useCartStore } from "@/store/cartStore";
 import type { User } from "@supabase/supabase-js";
+import Image from "next/image";
 
 // ── Only the search input needs useSearchParams ──────────────
 // Isolating it here means only this tiny component can suspend,
@@ -153,10 +153,11 @@ export default function Navbar() {
         {/* Logo */}
         <Link
           href="/"
-          className="flex items-center gap-2 font-semibold text-sky-600 text-base sm:text-lg shrink-0 cursor-pointer"
+          className="flex items-center gap-1 font-semibold text-sky-600 text-base sm:text-lg shrink-0 cursor-pointer"
         >
-          <div className="w-6 h-6 sm:w-7 sm:h-7 bg-sky-500 rounded-lg flex items-center justify-center">
-            <Flame size={14} className="text-white" />
+          <div className="w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center">
+            {/* <Flame size={14} className="text-white" /> */}
+            <Image src="/logo.png" alt="logo" height={120} width={120} />
           </div>
           <span>
             Peak<span className="text-gray-900">Fuel</span>

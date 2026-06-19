@@ -5,6 +5,7 @@ import Navbar from "@/components/Navbar";
 import PageTransition from "@/components/PageTransitions";
 import ToastContainer from "@/components/Toast";
 import CartDrawer from "@/components/CartDrawer";
+import DemoBadge from "@/components/DemoBadge";
 
 const geist = Geist({ subsets: ["latin"] });
 
@@ -36,6 +37,7 @@ export default function RootLayout({
         </main>
         <CartDrawer />
         <ToastContainer />
+        <DemoBadge />
       </body>
     </html>
   );

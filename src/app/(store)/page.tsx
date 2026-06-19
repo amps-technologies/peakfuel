@@ -16,13 +16,13 @@ const catMap: Record<string, string> = {
   safety: "safety",
 };
 
+// Two versions — desktop shows emoji, mobile is text-only and compact
 const categoryPills = [
-  { label: "All", value: "" },
-  { label: "🛢️ Tanks", value: "tanks" },
-  { label: "🔄 Refills", value: "refills" },
-  { label: "🔧 Regulators", value: "regulators" },
-  { label: "🔩 Accessories", value: "accessories" },
-  { label: "🧯 Safety", value: "safety" },
+  { label: "🛢️ Tanks", short: "Tanks", value: "tanks" },
+  { label: "🔄 Refills", short: "Refills", value: "refills" },
+  { label: "🔧 Regulators", short: "Regulators", value: "regulators" },
+  { label: "🔩 Accessories", short: "Accessories", value: "accessories" },
+  { label: "🧯 Safety", short: "Safety", value: "safety" },
 ];
 
 function ShopContent() {
@@ -109,31 +109,44 @@ function ShopContent() {
         <Image src="/logo.png" alt="logo" height={80} width={80} />
       </div>
 
-      {/*
-        Category pills — sticky below navbar.
-        IMPORTANT: overflow-x-auto must NOT live on the same element as
-        `sticky`. Setting overflow-x to anything but `visible` forces the
-        browser to also compute overflow-y as a scroll container for sticky
-        purposes, which silently breaks `position: sticky` on this element.
-        Fix: the sticky div only handles positioning/background; a separate
-        inner div (no `sticky`) owns the horizontal scroll.
-      */}
+      {/* Category pills — sticky below navbar */}
       <div className="sticky top-14 z-40 bg-gray-50 -mx-4 px-4 py-2 mb-2">
-        <div className="flex gap-2 flex-wrap sm:flex-nowrap overflow-x-auto">
-          {categoryPills.map((pill) => (
+        {/* Fade hint on right edge — hints there are more pills to scroll */}
+        <div className="relative">
+          <div className="flex gap-1.5 sm:gap-2 overflow-x-auto scrollbar-hide pb-0.5">
+            {/* All pill */}
             <button
-              key={pill.value}
-              onClick={() => switchCategory(pill.value)}
-              className={`px-4 py-1.5 rounded-full text-sm border transition-all duration-200 cursor-pointer shrink-0
-        ${
-          category === pill.value
-            ? "bg-sky-500 text-white border-sky-500 scale-105"
-            : "bg-white text-gray-600 border-gray-200 hover:border-sky-300 hover:text-sky-500"
-        }`}
+              onClick={() => switchCategory("")}
+              className={`px-3 sm:px-4 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm border transition-colors duration-150 cursor-pointer whitespace-nowrap shrink-0 font-medium
+          ${
+            category === ""
+              ? "bg-sky-500 text-white border-sky-500"
+              : "bg-white text-gray-500 border-gray-200 hover:border-sky-300 hover:text-sky-500"
+          }`}
             >
-              {pill.label}
+              All
             </button>
-          ))}
+
+            {categoryPills.map((pill) => (
+              <button
+                key={pill.value}
+                onClick={() => switchCategory(pill.value)}
+                className={`px-3 sm:px-4 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm border transition-colors duration-150 cursor-pointer whitespace-nowrap shrink-0
+            ${
+              category === pill.value
+                ? "bg-sky-500 text-white border-sky-500 font-medium"
+                : "bg-white text-gray-500 border-gray-200 hover:border-sky-300 hover:text-sky-500"
+            }`}
+              >
+                {/* Show short label (no emoji) on mobile, full label with emoji on sm+ */}
+                <span className="sm:hidden">{pill.short}</span>
+                <span className="hidden sm:inline">{pill.label}</span>
+              </button>
+            ))}
+          </div>
+
+          {/* Right fade — signals more content to scroll horizontally */}
+          <div className="absolute right-0 top-0 bottom-0.5 w-8 bg-gradient-to-l from-gray-50 to-transparent pointer-events-none sm:hidden" />
         </div>
       </div>
 

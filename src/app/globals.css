@@ -56,6 +56,15 @@ header.app-navbar {
   z-index: 50;
 }
 
+/* Hide scrollbar visually but keep scroll functional */
+.scrollbar-hide {
+  -ms-overflow-style: none; /* IE / Edge */
+  scrollbar-width: none; /* Firefox */
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none; /* Chrome / Safari / Opera */
+}
+
 @keyframes fadeIn {
   from {
     opacity: 0;
