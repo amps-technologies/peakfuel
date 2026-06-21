@@ -31,7 +31,7 @@ const CATEGORY_ORDER = ["tank", "refill", "regulator", "accessory", "safety"];
 // Desktop shows 5 per row, mobile shows 2 per row
 // We show 1 row on desktop (5 items) and 1 row on mobile (2 items)
 const DESKTOP_PREVIEW = 5;
-const MOBILE_PREVIEW = 2;
+const MOBILE_PREVIEW = 4;
 
 const categoryPills = [
   { label: "All", short: "All", value: "" },
