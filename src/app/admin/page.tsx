@@ -49,7 +49,7 @@ const CATEGORY_EMOJI: Record<string, string> = {
 const CATEGORY_ORDER = ["tank", "refill", "regulator", "accessory", "safety"];
 
 const RIDER_APK_URL =
-  "https://github.com/yourusername/gasgo-releases/releases/download/v1.0.0/gasgo-rider.apk";
+  "https://github.com/amps-technologies/apk/releases/download/v1.0.0/peakFuelRider.apk";
 
 interface FormState {
   name: string;

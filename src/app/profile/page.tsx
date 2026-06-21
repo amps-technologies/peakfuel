@@ -15,7 +15,7 @@ import {
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 
 const RIDER_APK_URL =
-  "https://github.com/yourusername/gasgo-releases/releases/download/v1.0.0/gasgo-rider.apk";
+  "https://github.com/amps-technologies/apk/releases/download/v1.0.0/peakFuelRider.apk";
 
 interface Profile {
   full_name: string | null;
