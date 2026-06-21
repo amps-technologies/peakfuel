@@ -11,13 +11,14 @@ export type PaymentMethod = "cod" | "gcash" | "maya" | "card";
 export interface Product {
   id: string;
   name: string;
-  category: Category;
+  category: string;
   price: number;
   unit: string;
-  image_url: string | null;
   description: string | null;
+  image_url: string | null;
   in_stock: boolean;
   created_at: string;
+  sort_order: number;
 }
 
 export interface Order {

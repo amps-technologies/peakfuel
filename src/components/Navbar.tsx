@@ -8,7 +8,6 @@ import {
   MapPin,
   ShoppingCart,
   Package,
-  LogOut,
   User as UserIcon,
   ArrowLeft,
 } from "lucide-react";
@@ -140,10 +139,10 @@ export default function Navbar() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const signOut = async () => {
-    await supabase.auth.signOut({ scope: "local" });
-    window.location.href = "/";
-  };
+  // const signOut = async () => {
+  //   await supabase.auth.signOut({ scope: "local" });
+  //   window.location.href = "/";
+  // };
 
   return (
     // This <header> is now ALWAYS rendered — never inside a Suspense
@@ -189,7 +188,6 @@ export default function Navbar() {
               </span>
             )}
           </button>
-
           {mounted && user ? (
             <div className="flex items-center gap-1.5 sm:gap-2">
               <Link
@@ -198,15 +196,16 @@ export default function Navbar() {
               >
                 <Package size={15} /> Admin
               </Link>
-              <span className="text-sm text-gray-600 hidden sm:block">
-                {user.email?.split("@")[0]}
-              </span>
-              <button
-                onClick={signOut}
+              {/* Profile link — replaces logout button */}
+              <Link
+                href="/profile"
                 className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
               >
-                <LogOut size={15} />
-              </button>
+                <UserIcon size={15} />
+                <span className="hidden sm:inline">
+                  {user.email?.split("@")[0]}
+                </span>
+              </Link>
             </div>
           ) : mounted ? (
             <Link

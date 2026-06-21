@@ -4,7 +4,7 @@ import { useEffect, useState, useMemo } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import ProductCard from "@/components/ProductCard";
-import { Flame, Truck, Shield } from "lucide-react";
+import { Flame, Truck, Shield, ChevronRight, ChevronDown } from "lucide-react";
 import type { Product } from "@/types";
 import Image from "next/image";
 
@@ -16,14 +16,113 @@ const catMap: Record<string, string> = {
   safety: "safety",
 };
 
-// Two versions — desktop shows emoji, mobile is text-only and compact
+// Text-only category labels — no emoji in separators
+const CATEGORY_LABELS: Record<string, string> = {
+  tank: "Tanks",
+  refill: "Refills",
+  regulator: "Regulators",
+  accessory: "Accessories",
+  safety: "Safety",
+};
+
+const CATEGORY_ORDER = ["tank", "refill", "regulator", "accessory", "safety"];
+
+// How many products to show in the collapsed "preview" row(s)
+// Desktop shows 5 per row, mobile shows 2 per row
+// We show 1 row on desktop (5 items) and 1 row on mobile (2 items)
+const DESKTOP_PREVIEW = 5;
+const MOBILE_PREVIEW = 2;
+
 const categoryPills = [
+  { label: "All", short: "All", value: "" },
   { label: "🛢️ Tanks", short: "Tanks", value: "tanks" },
   { label: "🔄 Refills", short: "Refills", value: "refills" },
   { label: "🔧 Regulators", short: "Regulators", value: "regulators" },
   { label: "🔩 Accessories", short: "Accessories", value: "accessories" },
   { label: "🧯 Safety", short: "Safety", value: "safety" },
 ];
+
+// Responsive hook for preview count
+function useIsDesktop() {
+  const [isDesktop, setIsDesktop] = useState(true);
+  useEffect(() => {
+    const check = () => setIsDesktop(window.innerWidth >= 640);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+  return isDesktop;
+}
+
+interface CategorySectionProps {
+  cat: string;
+  products: Product[];
+  onSeeAll: () => void;
+}
+
+function CategorySection({ cat, products, onSeeAll }: CategorySectionProps) {
+  const [expanded, setExpanded] = useState(false);
+  const isDesktop = useIsDesktop();
+  const previewCount = isDesktop ? DESKTOP_PREVIEW : MOBILE_PREVIEW;
+  const hasMore = products.length > previewCount;
+  const visible = expanded ? products : products.slice(0, previewCount);
+
+  return (
+    <div>
+      {/* Separator with category name */}
+      <div className="flex items-center gap-3 mb-3">
+        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">
+          {CATEGORY_LABELS[cat] ?? cat}
+        </h2>
+        <div className="flex-1 h-px bg-gray-200" />
+        {hasMore && (
+          <button
+            onClick={() => setExpanded((e) => !e)}
+            className="flex items-center gap-1 text-xs text-sky-500 hover:text-sky-600 cursor-pointer whitespace-nowrap shrink-0 transition-colors"
+          >
+            {expanded ? (
+              <>
+                <ChevronDown size={14} />
+                Show less
+              </>
+            ) : (
+              <>
+                <ChevronRight size={14} />
+                {products.length - previewCount} more
+              </>
+            )}
+          </button>
+        )}
+      </div>
+
+      {/* Product grid */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+        {visible.map((product) => (
+          <ProductCard key={product.id} product={product} />
+        ))}
+      </div>
+
+      {/* Expand/collapse button below grid (for mobile usability) */}
+      {hasMore && (
+        <button
+          onClick={() => setExpanded((e) => !e)}
+          className="mt-3 w-full py-2 text-xs text-gray-400 hover:text-sky-500 border border-dashed border-gray-200 hover:border-sky-300 rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+        >
+          {expanded ? (
+            <>
+              <ChevronDown size={13} /> Show less
+            </>
+          ) : (
+            <>
+              <ChevronRight size={13} /> Show all {products.length}{" "}
+              {CATEGORY_LABELS[cat]?.toLowerCase()}
+            </>
+          )}
+        </button>
+      )}
+    </div>
+  );
+}
 
 function ShopContent() {
   const searchParams = useSearchParams();
@@ -40,41 +139,56 @@ function ShopContent() {
   useEffect(() => {
     const fetchProducts = async () => {
       setFadeIn(false);
-
-      let query = supabase
+      const { data } = await supabase
         .from("products")
         .select("*")
         .eq("in_stock", true)
-        .order("created_at");
+        .order("sort_order", { ascending: true })
+        .order("created_at", { ascending: false });
 
-      if (category && category !== "all") {
-        const dbCat = catMap[category] ?? category;
-        query = query.eq("category", dbCat);
-      }
-
-      const { data } = await query;
       setAllProducts((data as Product[]) ?? []);
       setLoading(false);
-
       requestAnimationFrame(() => {
         requestAnimationFrame(() => setFadeIn(true));
       });
     };
-
     fetchProducts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [category]);
+  }, []);
 
   const products = useMemo(() => {
-    if (!searchQuery.trim()) return allProducts;
-    const q = searchQuery.toLowerCase();
-    return allProducts.filter(
-      (p) =>
-        p.name.toLowerCase().includes(q) ||
-        p.description?.toLowerCase().includes(q) ||
-        p.category.toLowerCase().includes(q),
+    let list = allProducts;
+    if (category && category !== "all") {
+      const dbCat = catMap[category] ?? category;
+      list = list.filter((p) => p.category === dbCat);
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      list = list.filter(
+        (p) =>
+          p.name.toLowerCase().includes(q) ||
+          p.description?.toLowerCase().includes(q) ||
+          p.category.toLowerCase().includes(q),
+      );
+    }
+    return list;
+  }, [allProducts, category, searchQuery]);
+
+  // Group by category only when showing "All" with no search
+  const grouped = useMemo(() => {
+    const showingAll = !category && !searchQuery.trim();
+    if (!showingAll) return null;
+
+    const map: Record<string, Product[]> = {};
+    products.forEach((p) => {
+      if (!map[p.category]) map[p.category] = [];
+      map[p.category].push(p);
+    });
+
+    return CATEGORY_ORDER.filter((cat) => (map[cat]?.length ?? 0) > 0).map(
+      (cat) => ({ category: cat, products: map[cat] }),
     );
-  }, [allProducts, searchQuery]);
+  }, [products, category, searchQuery]);
 
   const switchCategory = (value: string) => {
     if (value === category) return;
@@ -94,7 +208,7 @@ function ShopContent() {
           <p className="text-sky-100 text-sm mb-4">
             Cylinders, refills and accessories. Same-day delivery available.
           </p>
-          <div className="flex gap-4 text-xs text-sky-100">
+          <div className="flex gap-4 text-xs text-sky-100 flex-wrap">
             <span className="flex items-center gap-1">
               <Truck size={13} /> Same-day delivery
             </span>
@@ -102,50 +216,42 @@ function ShopContent() {
               <Shield size={13} /> Safety certified
             </span>
             <span className="flex items-center gap-1">
-              <Flame size={13} /> 22 products
+              <Flame size={13} />
+              {category
+                ? `${products.length} product${products.length !== 1 ? "s" : ""}`
+                : `${allProducts.length} products`}
             </span>
           </div>
         </div>
-        <Image src="/logo.png" alt="logo" height={80} width={80} />
+        <Image
+          src="/logo.png"
+          alt="logo"
+          height={80}
+          width={80}
+          className="shrink-0"
+        />
       </div>
 
-      {/* Category pills — sticky below navbar */}
-      <div className="sticky top-14 z-40 bg-gray-50 -mx-4 px-4 py-2 mb-2">
-        {/* Fade hint on right edge — hints there are more pills to scroll */}
+      {/* Category pills — sticky */}
+      <div className="sticky top-14 z-40 bg-gray-50 -mx-4 px-4 py-2 mb-4">
         <div className="relative">
           <div className="flex gap-1.5 sm:gap-2 overflow-x-auto scrollbar-hide pb-0.5">
-            {/* All pill */}
-            <button
-              onClick={() => switchCategory("")}
-              className={`px-3 sm:px-4 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm border transition-colors duration-150 cursor-pointer whitespace-nowrap shrink-0 font-medium
-          ${
-            category === ""
-              ? "bg-sky-500 text-white border-sky-500"
-              : "bg-white text-gray-500 border-gray-200 hover:border-sky-300 hover:text-sky-500"
-          }`}
-            >
-              All
-            </button>
-
             {categoryPills.map((pill) => (
               <button
                 key={pill.value}
                 onClick={() => switchCategory(pill.value)}
-                className={`px-3 sm:px-4 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm border transition-colors duration-150 cursor-pointer whitespace-nowrap shrink-0
-            ${
-              category === pill.value
-                ? "bg-sky-500 text-white border-sky-500 font-medium"
-                : "bg-white text-gray-500 border-gray-200 hover:border-sky-300 hover:text-sky-500"
-            }`}
+                className={`px-3 sm:px-4 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm border transition-colors duration-150 cursor-pointer whitespace-nowrap shrink-0 font-medium
+                  ${
+                    category === pill.value
+                      ? "bg-sky-500 text-white border-sky-500"
+                      : "bg-white text-gray-500 border-gray-200 hover:border-sky-300 hover:text-sky-500"
+                  }`}
               >
-                {/* Show short label (no emoji) on mobile, full label with emoji on sm+ */}
                 <span className="sm:hidden">{pill.short}</span>
                 <span className="hidden sm:inline">{pill.label}</span>
               </button>
             ))}
           </div>
-
-          {/* Right fade — signals more content to scroll horizontally */}
           <div className="absolute right-0 top-0 bottom-0.5 w-8 bg-gradient-to-l from-gray-50 to-transparent pointer-events-none sm:hidden" />
         </div>
       </div>
@@ -163,8 +269,9 @@ function ShopContent() {
             onClick={() => {
               const params = new URLSearchParams();
               if (category) params.set("category", category);
-              const url = params.toString() ? `/?${params.toString()}` : "/";
-              router.push(url, { scroll: false });
+              router.push(params.toString() ? `/?${params.toString()}` : "/", {
+                scroll: false,
+              });
             }}
             className="ml-1 text-sky-500 hover:text-sky-600 cursor-pointer"
           >
@@ -173,7 +280,7 @@ function ShopContent() {
         </div>
       )}
 
-      {/* Product grid */}
+      {/* Products */}
       <div
         style={{
           opacity: fadeIn ? 1 : 0,
@@ -188,7 +295,7 @@ function ShopContent() {
                 key={i}
                 className="bg-white border border-gray-100 rounded-xl overflow-hidden animate-pulse"
               >
-                <div className="h-28 bg-gray-100" />
+                <div className="aspect-square bg-gray-100" />
                 <div className="p-3 space-y-2">
                   <div className="h-3 bg-gray-100 rounded w-3/4" />
                   <div className="h-3 bg-gray-100 rounded w-1/2" />
@@ -203,10 +310,28 @@ function ShopContent() {
             <p>
               {searchQuery
                 ? `No products found for "${searchQuery}"`
-                : "No products found in this category."}
+                : "No products found."}
             </p>
           </div>
+        ) : grouped ? (
+          // "All" view — grouped with expand/collapse per category
+          <div className="space-y-8">
+            {grouped.map(({ category: cat, products: catProducts }) => (
+              <CategorySection
+                key={cat}
+                cat={cat}
+                products={catProducts}
+                onSeeAll={() => {
+                  const pill =
+                    Object.entries(catMap).find(([, v]) => v === cat)?.[0] ??
+                    "";
+                  switchCategory(pill);
+                }}
+              />
+            ))}
+          </div>
         ) : (
+          // Filtered/search view — flat grid, no grouping needed
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
             {products.map((product) => (
               <ProductCard key={product.id} product={product} />
@@ -214,6 +339,20 @@ function ShopContent() {
           </div>
         )}
       </div>
+      {/* End of products note */}
+      {!loading && products.length > 0 && (
+        <div className="mt-10 mb-6 flex flex-col items-center gap-2 text-gray-300 select-none">
+          <div className="flex items-center gap-3 w-full max-w-xs">
+            <div className="flex-1 h-px bg-gray-200" />
+            <span className="text-xs">end of products</span>
+            <div className="flex-1 h-px bg-gray-200" />
+          </div>
+          <p className="text-[10px] text-gray-300">
+            {products.length} product{products.length !== 1 ? "s" : ""} shown
+            {category ? " in this category" : " available"}
+          </p>
+        </div>
+      )}
     </div>
   );
 }
