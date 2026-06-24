@@ -200,6 +200,8 @@ function ShopContent() {
     router.push(url, { scroll: false });
   };
 
+  console.log(visible);
+
   return (
     <div className="max-w-6xl mx-auto px-4 py-6">
       {/* Hero */}
