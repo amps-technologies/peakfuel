@@ -197,9 +197,6 @@ function ShopContent() {
     if (value) params.set("category", value);
     if (searchQuery) params.set("q", searchQuery);
     const url = params.toString() ? `/?${params.toString()}` : "/";
-    const delay = (ms: number) =>
-      new Promise((resolve) => setTimeout(resolve, ms));
-    delay(500);
     router.push(url, { scroll: false });
   };
 
@@ -339,11 +336,13 @@ function ShopContent() {
               ))}
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-              {products.map((product) => (
-                <ProductCard key={product.id} product={product} />
-              ))}
-            </div>
+            visible && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                {products.map((product) => (
+                  <ProductCard key={product.id} product={product} />
+                ))}
+              </div>
+            )
           )}
 
           {/* End of products note */}
