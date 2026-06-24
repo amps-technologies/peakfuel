@@ -197,6 +197,9 @@ function ShopContent() {
     if (value) params.set("category", value);
     if (searchQuery) params.set("q", searchQuery);
     const url = params.toString() ? `/?${params.toString()}` : "/";
+    const delay = (ms: number) =>
+      new Promise((resolve) => setTimeout(resolve, ms));
+    delay(500);
     router.push(url, { scroll: false });
   };
 
