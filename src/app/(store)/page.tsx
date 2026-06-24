@@ -243,8 +243,8 @@ function ShopContent() {
               <button
                 key={pill.value}
                 onClick={() => {
-                  switchCategory(pill.value);
                   setVisible(false);
+                  switchCategory(pill.value);
                 }}
                 className={`px-3 sm:px-4 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm border transition-colors duration-150 cursor-pointer whitespace-nowrap shrink-0 font-medium
                   ${
