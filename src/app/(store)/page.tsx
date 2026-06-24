@@ -154,7 +154,7 @@ function ShopContent() {
     // const set = () => setVisible(false);
     // set();
     // Wait for fade out to complete, then fade back in
-    const t = setTimeout(() => setVisible(true), 50);
+    const t = setTimeout(() => setVisible(true), 100);
     return () => clearTimeout(t);
   }, [category, searchQuery]);
 
@@ -261,7 +261,7 @@ function ShopContent() {
       </div>
 
       {/* Search result info */}
-      {searchQuery && (
+      {/* {searchQuery && (
         <div className="flex items-center gap-2 mb-4 text-sm text-gray-500">
           <span>
             {products.length} result{products.length !== 1 ? "s" : ""} for
@@ -282,7 +282,7 @@ function ShopContent() {
             Clear
           </button>
         </div>
-      )}
+      )} */}
 
       {/* Products — key triggers CSS animation on every filter change */}
       {loading ? (
@@ -305,7 +305,7 @@ function ShopContent() {
         <div
           style={{
             opacity: visible ? 1 : 0,
-            transition: "opacity 100ms ease-out",
+            transition: "opacity 100ms ease-in-out",
           }}
         >
           {products.length === 0 ? (
