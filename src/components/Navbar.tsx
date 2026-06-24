@@ -10,6 +10,7 @@ import {
   Package,
   User as UserIcon,
   ArrowLeft,
+  Settings,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useCartStore } from "@/store/cartStore";
@@ -185,7 +186,6 @@ export default function Navbar() {
           className="flex items-center gap-1 font-semibold text-sky-600 text-base sm:text-lg shrink-0 cursor-pointer"
         >
           <div className="w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center">
-            {/* <Flame size={14} className="text-white" /> */}
             <Image src="/logo.png" alt="logo" height={120} width={120} />
           </div>
           <span>
@@ -225,7 +225,7 @@ export default function Navbar() {
                   href="/admin"
                   className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
                 >
-                  <Package size={15} /> Admin
+                  <Settings size={15} /> Admin
                 </Link>
               )}
               {/* Profile link — replaces logout button */}

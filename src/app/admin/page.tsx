@@ -15,17 +15,18 @@ import {
   ToggleRight,
   Truck,
   Calendar,
-  Flame,
   BarChart3,
   ArrowLeft,
   Search,
   GripVertical,
   ChevronUp,
   ChevronDown,
+  Settings,
 } from "lucide-react";
 import type { Product, Order, OrderStatus, Category } from "@/types";
 import { showToast } from "@/components/Toast";
 import Link from "next/link";
+import Image from "next/image";
 
 type AdminTab = "orders" | "products" | "reports" | "rider";
 
@@ -433,8 +434,8 @@ export default function AdminPage() {
       <aside className="w-56 bg-white border-r border-gray-100 flex flex-col shrink-0">
         <div className="p-4 border-b border-gray-100">
           <div className="flex items-center gap-2 text-sky-600 font-bold">
-            <Flame size={18} />
-            <span>Admin</span>
+            <Settings size={18} />
+            <span>Admin Panel</span>
           </div>
           <p className="text-xs text-gray-400 mt-1 truncate">{adminEmail}</p>
         </div>
