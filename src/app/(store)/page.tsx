@@ -154,7 +154,7 @@ function ShopContent() {
     // const set = () => setVisible(false);
     // set();
     // Wait for fade out to complete, then fade back in
-    const t = setTimeout(() => setVisible(true), 100);
+    const t = setTimeout(() => setVisible(true), 500);
     return () => clearTimeout(t);
   }, [category, searchQuery]);
 
