@@ -101,6 +101,7 @@ export default function AdminPage() {
   const [orderItems, setOrderItems] = useState<OrderItemRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [adminEmail, setAdminEmail] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
 
   // Date filter
   const today = new Date().toISOString().split("T")[0];
@@ -268,6 +269,11 @@ export default function AdminPage() {
       prev.map((o) => (o.id === orderId ? { ...o, status } : o)),
     );
   };
+
+  const statusFilteredOrders = useMemo(() => {
+    if (statusFilter === "all") return filteredOrders;
+    return filteredOrders.filter((o) => o.status === statusFilter);
+  }, [filteredOrders, statusFilter]);
 
   // ── Products CRUD ──────────────────────────────────────────
   const openNew = () => {
@@ -468,7 +474,7 @@ export default function AdminPage() {
         <div className="max-w-5xl mx-auto px-6 py-6">
           {/* ══ ORDERS TAB ══ */}
           {tab === "orders" && (
-            <div className="space-y-4">
+            <div className="space-y-4 animate-fade-in">
               <h1 className="text-lg font-semibold text-gray-800">Orders</h1>
 
               {/* Date filter */}
@@ -506,117 +512,180 @@ export default function AdminPage() {
                 </button>
               </div>
 
-              {/* Stats */}
+              {/* Clickable stat cards — filter orders by status */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {[
                   {
-                    label: "Orders",
+                    label: "All orders",
                     value: filteredOrders.length,
+                    status: "all",
                     color: "text-sky-600",
+                    bg: "bg-sky-50 border-sky-200",
                   },
                   {
                     label: "Pending",
                     value: filteredOrders.filter((o) => o.status === "pending")
                       .length,
+                    status: "pending",
                     color: "text-yellow-600",
+                    bg: "bg-yellow-50 border-yellow-200",
                   },
                   {
                     label: "On the way",
                     value: filteredOrders.filter(
                       (o) => o.status === "on_the_way",
                     ).length,
+                    status: "on_the_way",
                     color: "text-blue-600",
+                    bg: "bg-blue-50 border-blue-200",
                   },
                   {
                     label: "Delivered",
                     value: filteredOrders.filter(
                       (o) => o.status === "delivered",
                     ).length,
+                    status: "delivered",
                     color: "text-green-600",
+                    bg: "bg-green-50 border-green-200",
                   },
                 ].map((s) => (
-                  <div
-                    key={s.label}
-                    className="bg-white border border-gray-100 rounded-xl p-3"
+                  <button
+                    key={s.status}
+                    onClick={() => setStatusFilter(s.status)}
+                    className={`rounded-xl p-3 text-left border-2 transition-all cursor-pointer
+        ${
+          statusFilter === s.status
+            ? `${s.bg} shadow-sm`
+            : "bg-white border-gray-100 hover:border-gray-200"
+        }`}
                   >
                     <p className="text-xs text-gray-400 mb-1">{s.label}</p>
                     <p className={`text-xl font-bold ${s.color}`}>{s.value}</p>
-                  </div>
+                    {statusFilter === s.status && (
+                      <p className="text-[10px] text-gray-400 mt-0.5">
+                        Showing filtered
+                      </p>
+                    )}
+                  </button>
                 ))}
               </div>
 
               {/* Orders list */}
               <div className="space-y-2">
-                {filteredOrders.length === 0 && (
+                {statusFilteredOrders.length === 0 && (
                   <div className="text-center py-16 text-gray-400 bg-white border border-gray-100 rounded-xl">
-                    No orders found for this date range.
+                    {statusFilter === "all"
+                      ? "No orders found for this date range."
+                      : `No ${statusFilter.replace("_", " ")} orders found.`}
                   </div>
                 )}
-                {filteredOrders.map((order) => (
-                  <div
-                    key={order.id}
-                    className="bg-white border border-gray-100 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center gap-3"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-mono text-xs text-gray-400">
-                          #{order.id.slice(0, 8).toUpperCase()}
-                        </span>
-                        <span
-                          className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[order.status]}`}
-                        >
-                          {order.status.replace("_", " ")}
-                        </span>
+                {statusFilteredOrders.map((order) => {
+                  const isDone =
+                    order.status === "delivered" ||
+                    order.status === "cancelled";
+                  const isActive = order.status === "on_the_way";
+
+                  return (
+                    <div
+                      key={order.id}
+                      className={`bg-white border rounded-xl p-4 flex flex-col sm:flex-row sm:items-center gap-3
+          ${isDone ? "border-gray-100 opacity-75" : "border-gray-100"}`}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-mono text-xs text-gray-400">
+                            #{order.id.slice(0, 8).toUpperCase()}
+                          </span>
+                          <span
+                            className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[order.status]}`}
+                          >
+                            {order.status.replace("_", " ")}
+                          </span>
+                          {isDone && (
+                            <span className="text-[10px] text-gray-300">
+                              · closed
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-sm font-medium truncate">
+                          {order.guest_name ?? "Registered user"}
+                        </p>
+                        <p className="text-xs text-gray-400 truncate">
+                          {cleanAddress(order.address)}
+                        </p>
+                        <p className="text-xs text-gray-300 mt-0.5">
+                          {new Date(order.created_at).toLocaleDateString(
+                            "en-PH",
+                            {
+                              month: "short",
+                              day: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            },
+                          )}
+                        </p>
                       </div>
-                      <p className="text-sm font-medium truncate">
-                        {order.guest_name ?? "Registered user"}
-                      </p>
-                      <p className="text-xs text-gray-400 truncate">
-                        {cleanAddress(order.address)}
-                      </p>
+
+                      <div className="flex items-center gap-3 shrink-0">
+                        <span className="text-sm font-semibold text-sky-600">
+                          ₱{order.total.toLocaleString()}
+                        </span>
+
+                        {/* Status dropdown — disabled for done orders */}
+                        {isDone ? (
+                          <span
+                            className={`text-xs px-2.5 py-1.5 rounded-lg font-medium ${STATUS_COLORS[order.status]}`}
+                          >
+                            {order.status}
+                          </span>
+                        ) : (
+                          <select
+                            value={order.status}
+                            onChange={(e) =>
+                              updateStatus(
+                                order.id,
+                                e.target.value as OrderStatus,
+                              )
+                            }
+                            className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-sky-400 cursor-pointer"
+                          >
+                            {[
+                              "pending",
+                              "confirmed",
+                              "packed",
+                              "on_the_way",
+                              "delivered",
+                              "cancelled",
+                            ].map((s) => (
+                              <option key={s} value={s}>
+                                {s.replace("_", " ")}
+                              </option>
+                            ))}
+                          </select>
+                        )}
+
+                        {/* Track button — only for active deliveries */}
+                        {isActive && (
+                          <Link
+                            href={`/track/${order.id}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-xs text-sky-500 hover:underline cursor-pointer whitespace-nowrap"
+                          >
+                            Track →
+                          </Link>
+                        )}
+                      </div>
                     </div>
-                    <div className="flex items-center gap-3 shrink-0">
-                      <span className="text-sm font-semibold text-sky-600">
-                        ₱{order.total.toLocaleString()}
-                      </span>
-                      <select
-                        value={order.status}
-                        onChange={(e) =>
-                          updateStatus(order.id, e.target.value as OrderStatus)
-                        }
-                        className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-sky-400 cursor-pointer"
-                      >
-                        {[
-                          "pending",
-                          "confirmed",
-                          "packed",
-                          "on_the_way",
-                          "delivered",
-                          "cancelled",
-                        ].map((s) => (
-                          <option key={s} value={s}>
-                            {s.replace("_", " ")}
-                          </option>
-                        ))}
-                      </select>
-                      <a
-                        href={`/track/${order.id}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-xs text-sky-500 hover:underline cursor-pointer"
-                      >
-                        Track
-                      </a>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
 
           {/* ══ PRODUCTS TAB ══ */}
           {tab === "products" && (
-            <div className="space-y-4">
+            <div className="space-y-4 animate-fade-in">
               {/* Header */}
               <div className="flex items-center justify-between gap-3 flex-wrap">
                 <h1 className="text-lg font-semibold text-gray-800 shrink-0">
@@ -929,7 +998,7 @@ export default function AdminPage() {
 
           {/* ══ REPORTS TAB ══ */}
           {tab === "reports" && (
-            <div className="space-y-4">
+            <div className="space-y-4 animate-fade-in">
               <h1 className="text-lg font-semibold text-gray-800">
                 Sales report
               </h1>
@@ -1110,7 +1179,7 @@ export default function AdminPage() {
 
           {/* ══ RIDER TAB ══ */}
           {tab === "rider" && (
-            <div className="space-y-4">
+            <div className="space-y-4 animate-fade-in">
               <h1 className="text-lg font-semibold text-gray-800">Rider app</h1>
               <div className="bg-white border border-gray-100 rounded-xl p-5">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">

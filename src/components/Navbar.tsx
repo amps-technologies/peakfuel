@@ -95,6 +95,7 @@ function BackButton() {
 function NavCenter() {
   const pathname = usePathname();
   const isShop = pathname === "/";
+  const isProductDetail = pathname.startsWith("/products/");
 
   if (isShop) {
     return (
@@ -108,7 +109,11 @@ function NavCenter() {
     );
   }
 
-  return <BackButton />;
+  return isProductDetail ? (
+    <div className="flex-1 min-w-0 h-8"></div>
+  ) : (
+    <BackButton />
+  );
 }
 
 // ── Main navbar shell — never suspends, always sticky ───────
@@ -118,20 +123,45 @@ export default function Navbar() {
 
   const [user, setUser] = useState<User | null>(null);
   const [mounted, setMounted] = useState(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
 
   const count = items.reduce((sum, i) => sum + i.quantity, 0);
 
   useEffect(() => {
     let active = true;
-    supabase.auth.getUser().then(({ data }) => {
+    supabase.auth.getUser().then(async ({ data }) => {
       if (active) {
         setUser(data.user);
         setMounted(true);
+
+        // Fetch role from profiles
+        if (data.user) {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("role")
+            .eq("id", data.user.id)
+            .single();
+          if (active) setUserRole(profile?.role ?? null);
+        }
       }
     });
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
-      setUser(session?.user ?? null);
-    });
+
+    const { data: sub } = supabase.auth.onAuthStateChange(
+      async (_e, session) => {
+        setUser(session?.user ?? null);
+        if (session?.user) {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("role")
+            .eq("id", session.user.id)
+            .single();
+          setUserRole(profile?.role ?? null);
+        } else {
+          setUserRole(null);
+        }
+      },
+    );
+
     return () => {
       active = false;
       sub.subscription.unsubscribe();
@@ -190,12 +220,14 @@ export default function Navbar() {
           </button>
           {mounted && user ? (
             <div className="flex items-center gap-1.5 sm:gap-2">
-              <Link
-                href="/admin"
-                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
-              >
-                <Package size={15} /> Admin
-              </Link>
+              {userRole === "admin" && (
+                <Link
+                  href="/admin"
+                  className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+                >
+                  <Package size={15} /> Admin
+                </Link>
+              )}
               {/* Profile link — replaces logout button */}
               <Link
                 href="/profile"

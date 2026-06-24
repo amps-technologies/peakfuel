@@ -9,19 +9,19 @@ import {
   ShoppingBag,
   Smartphone,
   ChevronRight,
-  X,
   Download,
 } from "lucide-react";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 
 const RIDER_APK_URL =
-  "https://github.com/amps-technologies/apk/releases/download/v1.0.0/peakFuelRider.apk";
+  "https://github.com/yourusername/gasgo-releases/releases/download/v1.0.0/gasgo-rider.apk";
 
 interface Profile {
   full_name: string | null;
   phone: string | null;
   delivery_address: string | null;
   role: string | null;
+  username: string | null;
 }
 
 export default function ProfilePage() {
@@ -45,13 +45,13 @@ export default function ProfilePage() {
       }
       setUser(user);
 
-      const { data: profile } = await supabase
+      const { data } = await supabase
         .from("profiles")
-        .select("full_name, phone, delivery_address, role")
+        .select("full_name, phone, delivery_address, role, username")
         .eq("id", user.id)
         .single();
 
-      setProfile(profile as Profile);
+      setProfile(data as Profile);
       setLoading(false);
     };
     init();
@@ -71,7 +71,7 @@ export default function ProfilePage() {
     return (
       <div className="max-w-lg mx-auto px-4 py-12 space-y-4 animate-pulse">
         <div className="h-24 bg-gray-100 rounded-2xl" />
-        <div className="h-32 bg-gray-100 rounded-2xl" />
+        <div className="h-48 bg-gray-100 rounded-2xl" />
         <div className="h-20 bg-gray-100 rounded-2xl" />
       </div>
     );
@@ -85,7 +85,7 @@ export default function ProfilePage() {
           <div className="w-16 h-16 bg-sky-100 rounded-full flex items-center justify-center shrink-0">
             <User size={28} className="text-sky-500" />
           </div>
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <p className="font-semibold text-gray-900 truncate">
               {profile?.full_name ?? "Guest user"}
             </p>
@@ -98,7 +98,7 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* Delivery details */}
+        {/* Delivery info */}
         <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden">
           <div className="px-5 py-3 border-b border-gray-50">
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
@@ -205,11 +205,11 @@ export default function ProfilePage() {
         </button>
 
         <p className="text-center text-[10px] text-gray-300 pb-4">
-          Your delivery details are saved automatically on checkout.
+          Delivery details are saved automatically on checkout.
         </p>
       </div>
 
-      {/* ── LOGOUT CONFIRMATION MODAL ── */}
+      {/* Logout confirmation modal */}
       {logoutModal && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center px-4">
           <div className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-xl">
@@ -219,27 +219,25 @@ export default function ProfilePage() {
               </div>
               <h2 className="font-semibold text-gray-900">Sign out?</h2>
               <p className="text-sm text-gray-400 mt-1.5">
-                You will be redirected to the home page. Your cart will be
-                cleared.
+                You will be redirected to the home page.
               </p>
             </div>
-
             <div className="flex gap-3 px-6 pb-6">
               <button
                 onClick={() => setLogoutModal(false)}
                 disabled={loggingOut}
-                className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-medium hover:bg-gray-50 cursor-pointer disabled:opacity-60 transition-colors"
+                className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-medium hover:bg-gray-50 cursor-pointer disabled:opacity-60"
               >
                 Cancel
               </button>
               <button
                 onClick={handleLogout}
                 disabled={loggingOut}
-                className="flex-1 py-2.5 bg-red-500 text-white rounded-xl text-sm font-medium hover:bg-red-600 cursor-pointer disabled:opacity-60 transition-colors flex items-center justify-center gap-2"
+                className="flex-1 py-2.5 bg-red-500 text-white rounded-xl text-sm font-medium hover:bg-red-600 cursor-pointer disabled:opacity-60 flex items-center justify-center gap-2"
               >
                 {loggingOut ? (
                   <>
-                    <div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                    <div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />{" "}
                     Signing out...
                   </>
                 ) : (

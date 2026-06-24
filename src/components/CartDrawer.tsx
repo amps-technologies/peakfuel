@@ -3,17 +3,7 @@ import { useEffect } from "react";
 import { X, ShoppingCart, Minus, Plus, Trash2 } from "lucide-react";
 import { useCartStore } from "@/store/cartStore";
 import { useRouter } from "next/navigation";
-
-function categoryEmoji(cat: string) {
-  const map: Record<string, string> = {
-    tank: "🛢️",
-    refill: "🔄",
-    regulator: "🔧",
-    accessory: "🔩",
-    safety: "🧯",
-  };
-  return map[cat] ?? "📦";
-}
+import Image from "next/image";
 
 export default function CartDrawer() {
   const {
@@ -27,9 +17,7 @@ export default function CartDrawer() {
   } = useCartStore();
   const router = useRouter();
 
-  // Lock body scroll while the drawer is open — this is a side effect
-  // synchronizing with an external system (the DOM), which is exactly
-  // what useEffect is for, so no lint warning here.
+  // Lock body scroll while open
   useEffect(() => {
     if (isCartOpen) {
       document.body.style.overflow = "hidden";
@@ -42,15 +30,11 @@ export default function CartDrawer() {
   }, [isCartOpen]);
 
   const onClose = () => setCartOpen(false);
-
   const goCheckout = () => {
     onClose();
     router.push("/checkout");
   };
 
-  // Always rendered (no mount/unmount state machine). Pointer events are
-  // disabled while closed so it doesn't block clicks, and the backdrop +
-  // panel both animate purely via CSS transitions driven by isCartOpen.
   return (
     <div
       className="fixed inset-0 z-50"
@@ -64,11 +48,12 @@ export default function CartDrawer() {
         style={{ opacity: isCartOpen ? 1 : 0 }}
       />
 
-      {/* Drawer — full width on mobile, fixed width from sm breakpoint up */}
+      {/* Drawer */}
       <aside
         className="absolute top-0 right-0 h-full w-full sm:w-80 bg-white flex flex-col shadow-xl transition-transform duration-300 ease-out"
         style={{ transform: isCartOpen ? "translateX(0)" : "translateX(100%)" }}
       >
+        {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 shrink-0">
           <h2 className="font-semibold flex items-center gap-2 text-sm">
             <ShoppingCart size={16} className="text-sky-500" /> Your cart
@@ -81,6 +66,7 @@ export default function CartDrawer() {
           </button>
         </div>
 
+        {/* Items */}
         <div className="flex-1 overflow-y-auto p-4 space-y-3">
           {items.length === 0 ? (
             <div className="text-center text-gray-400 mt-20">
@@ -93,9 +79,27 @@ export default function CartDrawer() {
                 key={product.id}
                 className="flex gap-3 items-start pb-3 border-b border-gray-50 last:border-0"
               >
-                <div className="w-12 h-12 bg-sky-50 rounded-lg flex items-center justify-center text-2xl shrink-0">
-                  {categoryEmoji(product.category)}
+                {/* Product image — uses uploaded image or logo placeholder */}
+                <div className="w-14 h-14 bg-sky-50 rounded-xl overflow-hidden shrink-0 flex items-center justify-center border border-gray-100">
+                  {product.image_url ? (
+                    <Image
+                      src={product.image_url}
+                      alt={product.name}
+                      width={56}
+                      height={56}
+                      className="w-full h-full object-contain p-1"
+                    />
+                  ) : (
+                    <Image
+                      src="/logo.png"
+                      alt="placeholder"
+                      width={32}
+                      height={32}
+                      className="opacity-20 object-contain"
+                    />
+                  )}
                 </div>
+
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">{product.name}</p>
                   <p className="text-xs text-gray-400 mb-1.5">
@@ -119,6 +123,7 @@ export default function CartDrawer() {
                     </button>
                   </div>
                 </div>
+
                 <div className="text-right shrink-0">
                   <p className="text-sm font-semibold text-sky-600">
                     ₱{(product.price * quantity).toLocaleString()}
@@ -135,6 +140,7 @@ export default function CartDrawer() {
           )}
         </div>
 
+        {/* Footer */}
         {items.length > 0 && (
           <div className="p-4 border-t border-gray-100 space-y-3 shrink-0">
             <div className="flex justify-between items-center">

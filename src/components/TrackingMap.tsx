@@ -17,18 +17,11 @@ const STORE_LNG = parseFloat(process.env.NEXT_PUBLIC_STORE_LNG ?? "120.9842");
 const STORE_NAME = process.env.NEXT_PUBLIC_STORE_NAME ?? "GasGo Depot";
 const ORS_KEY = process.env.NEXT_PUBLIC_ORS_API_KEY ?? "";
 
-// Store icon
 const storeIcon = L.divIcon({
   html: `
-    <div style="
-      background:#f97316;
-      width:32px;height:32px;
-      border-radius:50% 50% 50% 0;
-      transform:rotate(-45deg);
-      border:3px solid #fff;
-      box-shadow:0 2px 8px rgba(0,0,0,0.3);
-      display:flex;align-items:center;justify-content:center;
-    ">
+    <div style="background:#0ea5e9;width:32px;height:32px;border-radius:50% 50% 50% 0;
+      transform:rotate(-45deg);border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.25);
+      display:flex;align-items:center;justify-content:center;">
       <span style="transform:rotate(45deg);font-size:14px;line-height:1">🏪</span>
     </div>`,
   className: "",
@@ -36,18 +29,11 @@ const storeIcon = L.divIcon({
   iconAnchor: [16, 32],
 });
 
-// Destination icon
 const destIcon = L.divIcon({
   html: `
-    <div style="
-      background:#ef4444;
-      width:32px;height:32px;
-      border-radius:50% 50% 50% 0;
-      transform:rotate(-45deg);
-      border:3px solid #fff;
-      box-shadow:0 2px 8px rgba(0,0,0,0.3);
-      display:flex;align-items:center;justify-content:center;
-    ">
+    <div style="background:#ef4444;width:32px;height:32px;border-radius:50% 50% 50% 0;
+      transform:rotate(-45deg);border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.25);
+      display:flex;align-items:center;justify-content:center;">
       <span style="transform:rotate(45deg);font-size:14px;line-height:1">📍</span>
     </div>`,
   className: "",
@@ -55,34 +41,16 @@ const destIcon = L.divIcon({
   iconAnchor: [16, 32],
 });
 
-// Truck / rider icon — animated pulse ring
 const truckIcon = L.divIcon({
   html: `
     <div style="position:relative;width:44px;height:44px;display:flex;align-items:center;justify-content:center">
-      <div style="
-        position:absolute;
-        width:44px;height:44px;
-        border-radius:50%;
-        background:rgba(37,99,235,0.15);
-        animation:truckPulse 1.8s ease-out infinite;
-      "></div>
-      <div style="
-        position:relative;
-        width:30px;height:30px;
-        border-radius:50%;
-        background:#2563eb;
-        border:3px solid #fff;
-        box-shadow:0 2px 8px rgba(37,99,235,0.5);
-        display:flex;align-items:center;justify-content:center;
-        font-size:16px;line-height:1;
-      ">🚚</div>
+      <div style="position:absolute;width:44px;height:44px;border-radius:50%;
+        background:rgba(37,99,235,0.15);animation:tPulse 1.8s ease-out infinite;"></div>
+      <div style="position:relative;width:30px;height:30px;border-radius:50%;
+        background:#2563eb;border:3px solid #fff;box-shadow:0 2px 8px rgba(37,99,235,0.5);
+        display:flex;align-items:center;justify-content:center;font-size:16px;line-height:1;">🚚</div>
     </div>
-    <style>
-      @keyframes truckPulse {
-        0%   { transform:scale(0.5); opacity:1   }
-        100% { transform:scale(1.8); opacity:0   }
-      }
-    </style>`,
+    <style>@keyframes tPulse{0%{transform:scale(0.5);opacity:1}100%{transform:scale(1.8);opacity:0}}</style>`,
   className: "",
   iconSize: [44, 44],
   iconAnchor: [22, 22],
@@ -107,6 +75,7 @@ export default function TrackingMap({
   const passedLayerRef = useRef<L.Polyline | null>(null);
   const remainLayerRef = useRef<L.Polyline | null>(null);
   const fullRouteRef = useRef<[number, number][]>([]);
+  const riderPosRef = useRef<{ lat: number; lng: number } | null>(null);
   const initialFitDone = useRef(false);
 
   const hasDestination = !!(
@@ -118,6 +87,62 @@ export default function TrackingMap({
     !isNaN(destLng)
   );
 
+  // Split and redraw route based on current rider position
+  const updateRouteSplit = (map: L.Map) => {
+    const route = fullRouteRef.current;
+    const rider = riderPosRef.current;
+    if (route.length < 2) return;
+
+    // Remove existing route layers
+    if (passedLayerRef.current) {
+      map.removeLayer(passedLayerRef.current);
+      passedLayerRef.current = null;
+    }
+    if (remainLayerRef.current) {
+      map.removeLayer(remainLayerRef.current);
+      remainLayerRef.current = null;
+    }
+
+    if (!rider) {
+      // No rider yet — draw full route as blue dashed
+      remainLayerRef.current = L.polyline(
+        route.map(([lat, lng]) => ({ lat, lng })),
+        { color: "#1d4ed8", weight: 5, opacity: 0.75, dashArray: "10, 6" },
+      ).addTo(map);
+      return;
+    }
+
+    // Find closest point on route to rider
+    let closestIdx = 0;
+    let minDist = Infinity;
+    route.forEach(([lat, lng], i) => {
+      const d = Math.hypot(lat - rider.lat, lng - rider.lng);
+      if (d < minDist) {
+        minDist = d;
+        closestIdx = i;
+      }
+    });
+
+    const passed = route.slice(0, closestIdx + 1);
+    const remain = route.slice(closestIdx);
+
+    // Passed — solid grey
+    if (passed.length > 1) {
+      passedLayerRef.current = L.polyline(
+        passed.map(([lat, lng]) => ({ lat, lng })),
+        { color: "#9ca3af", weight: 5, opacity: 0.7 },
+      ).addTo(map);
+    }
+
+    // Remaining — deep blue dashed
+    if (remain.length > 1) {
+      remainLayerRef.current = L.polyline(
+        remain.map(([lat, lng]) => ({ lat, lng })),
+        { color: "#1d4ed8", weight: 5, opacity: 0.85, dashArray: "10, 6" },
+      ).addTo(map);
+    }
+  };
+
   // Init map
   useEffect(() => {
     if (mapRef.current || !mapDivRef.current) return;
@@ -126,17 +151,18 @@ export default function TrackingMap({
       center: [STORE_LAT, STORE_LNG],
       zoom: 13,
       zoomControl: true,
+      attributionControl: false,
     });
 
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution:
-        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-    }).addTo(map);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(
+      map,
+    );
+    mapRef.current = map;
 
     // Store marker
     L.marker([STORE_LAT, STORE_LNG], { icon: storeIcon })
       .addTo(map)
-      .bindPopup(`<strong>${STORE_NAME}</strong><br>Order origin`);
+      .bindPopup(`<strong>${STORE_NAME}</strong>`);
 
     // Destination marker
     if (hasDestination && destLat && destLng) {
@@ -145,70 +171,55 @@ export default function TrackingMap({
         .bindPopup("<strong>Delivery address</strong>");
     }
 
-    mapRef.current = map;
-
-    const drawInitialRoute = async (
-      map: L.Map,
-      toLat: number,
-      toLng: number,
-    ) => {
-      try {
-        const res = await fetch(
-          "https://api.openrouteservice.org/v2/directions/driving-car/geojson",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: ORS_KEY,
-            },
-            body: JSON.stringify({
-              coordinates: [
-                [STORE_LNG, STORE_LAT],
-                [toLng, toLat],
-              ],
-            }),
-          },
-        );
-
-        if (!res.ok) return;
-
-        const data = (await res.json()) as {
-          features?: { geometry: { coordinates: [number, number][] } }[];
-        };
-        const coords = data?.features?.[0]?.geometry?.coordinates;
-        if (!coords?.length) return;
-
-        const latLngs = coords.map(
-          ([lng, lat]) => [lat, lng] as [number, number],
-        );
-        fullRouteRef.current = latLngs;
-
-        // Full route — deep blue dashed
-        remainLayerRef.current = L.polyline(
-          latLngs.map(([lat, lng]) => ({ lat, lng })),
-          {
-            color: "#1d4ed8",
-            weight: 5,
-            opacity: 0.75,
-            dashArray: "10, 6",
-          },
-        ).addTo(map);
-
-        // Fit full route into view
-        map.fitBounds(L.latLngBounds(latLngs), {
-          padding: [50, 50],
-          animate: true,
-        });
-      } catch {
-        // Silently fail
-      }
-    };
-
-    // Draw initial route if we have destination
+    // Fetch and draw initial route
     if (hasDestination && destLat && destLng && ORS_KEY) {
-      drawInitialRoute(map, destLat, destLng);
+      const fetchRoute = async () => {
+        try {
+          const res = await fetch(
+            "https://api.openrouteservice.org/v2/directions/driving-car/geojson",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: ORS_KEY,
+              },
+              body: JSON.stringify({
+                coordinates: [
+                  [STORE_LNG, STORE_LAT],
+                  [destLng, destLat],
+                ],
+              }),
+            },
+          );
+          if (!res.ok) return;
+          const data = (await res.json()) as {
+            features?: { geometry: { coordinates: [number, number][] } }[];
+          };
+          const coords = data?.features?.[0]?.geometry?.coordinates;
+          if (!coords?.length) return;
+
+          // Store full route as [lat, lng] pairs
+          fullRouteRef.current = coords.map(
+            ([lng, lat]) => [lat, lng] as [number, number],
+          );
+
+          // Draw split (handles case where rider is already moving)
+          updateRouteSplit(map);
+
+          // Fit bounds to show full route
+          if (!initialFitDone.current && !riderPosRef.current) {
+            map.fitBounds(L.latLngBounds(fullRouteRef.current), {
+              padding: [50, 50],
+              animate: true,
+            });
+          }
+        } catch {
+          // Silently fail — map still works without route line
+        }
+      };
+      fetchRoute();
     } else if (hasDestination && destLat && destLng) {
-      // No ORS key — fit to show store and destination
+      // No ORS key — fit to store + dest
       map.fitBounds(
         L.latLngBounds([
           [STORE_LAT, STORE_LNG],
@@ -225,17 +236,21 @@ export default function TrackingMap({
       passedLayerRef.current = null;
       remainLayerRef.current = null;
       fullRouteRef.current = [];
+      riderPosRef.current = null;
       initialFitDone.current = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Update rider marker and route split when coords change
+  // Update rider position
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !riderLat || !riderLng) return;
 
-    // Create or update truck marker
+    // Store latest rider position in ref so route split always has it
+    riderPosRef.current = { lat: riderLat, lng: riderLng };
+
+    // Create or move rider marker
     if (riderMarkerRef.current) {
       riderMarkerRef.current.setLatLng([riderLat, riderLng]);
     } else {
@@ -245,87 +260,47 @@ export default function TrackingMap({
       })
         .addTo(map)
         .bindPopup("🚚 Rider is here");
-
-      // First GPS fix — fit all points into view
-      if (!initialFitDone.current) {
-        const points: [number, number][] = [
-          [STORE_LAT, STORE_LNG],
-          [riderLat, riderLng],
-        ];
-        if (hasDestination && destLat && destLng) {
-          points.push([destLat, destLng]);
-        }
-        map.fitBounds(L.latLngBounds(points), {
-          padding: [60, 60],
-          animate: true,
-        });
-        initialFitDone.current = true;
-      }
     }
 
-    // Split route into passed (grey) and remaining (blue)
-    const route = fullRouteRef.current;
-    if (route.length > 1) {
-      // Find closest point on route to rider
-      let closestIdx = 0;
-      let minDist = Infinity;
-      route.forEach(([lat, lng], i) => {
-        const d = Math.hypot(lat - riderLat, lng - riderLng);
-        if (d < minDist) {
-          minDist = d;
-          closestIdx = i;
-        }
+    // Fit bounds on first GPS fix
+    if (!initialFitDone.current) {
+      const points: [number, number][] = [
+        [STORE_LAT, STORE_LNG],
+        [riderLat, riderLng],
+      ];
+      if (hasDestination && destLat && destLng) points.push([destLat, destLng]);
+      map.fitBounds(L.latLngBounds(points), {
+        padding: [60, 60],
+        animate: true,
       });
-
-      const passed = route.slice(0, closestIdx + 1);
-      const remain = route.slice(closestIdx);
-
-      // Remove old layers
-      if (passedLayerRef.current) map.removeLayer(passedLayerRef.current);
-      if (remainLayerRef.current) map.removeLayer(remainLayerRef.current);
-
-      // Passed — solid grey
-      if (passed.length > 1) {
-        passedLayerRef.current = L.polyline(
-          passed.map(([lat, lng]) => ({ lat, lng })),
-          { color: "#6b7280", weight: 5, opacity: 0.6 },
-        ).addTo(map);
-      }
-
-      // Remaining — deep blue dashed (very visible against orange OSM roads)
-      if (remain.length > 1) {
-        remainLayerRef.current = L.polyline(
-          remain.map(([lat, lng]) => ({ lat, lng })),
-          {
-            color: "#1d4ed8",
-            weight: 5,
-            opacity: 0.85,
-            dashArray: "10, 6",
-          },
-        ).addTo(map);
-      }
+      initialFitDone.current = true;
     }
 
-    // Pan to keep rider visible — only if near edge
-    const bounds = map.getBounds();
-    const riderLatLng = L.latLng(riderLat, riderLng);
-    const ns = (bounds.getNorth() - bounds.getSouth()) * 0.2;
-    const ew = (bounds.getEast() - bounds.getWest()) * 0.2;
+    // Redraw split route
+    updateRouteSplit(map);
+
+    // Gentle pan if rider near viewport edge
+    const b = map.getBounds();
+    const ns = (b.getNorth() - b.getSouth()) * 0.2;
+    const ew = (b.getEast() - b.getWest()) * 0.2;
     const inner = L.latLngBounds(
-      [bounds.getSouth() + ns, bounds.getWest() + ew],
-      [bounds.getNorth() - ns, bounds.getEast() - ew],
+      [b.getSouth() + ns, b.getWest() + ew],
+      [b.getNorth() - ns, b.getEast() - ew],
     );
-    if (!inner.contains(riderLatLng)) {
-      map.panTo(riderLatLng, { animate: true, duration: 1 });
+    if (!inner.contains(L.latLng(riderLat, riderLng))) {
+      map.panTo([riderLat, riderLng], { animate: true, duration: 1 });
     }
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [riderLat, riderLng]);
 
   return (
-    <div
-      ref={mapDivRef}
-      style={{ height: "100%", width: "100%", borderRadius: "12px" }}
-    />
+    <div style={{ position: "relative", height: "100%", width: "100%" }}>
+      <div
+        ref={mapDivRef}
+        style={{ height: "100%", width: "100%", borderRadius: "12px" }}
+      />
+      <style>{`.leaflet-control-attribution { display: none !important; }`}</style>
+    </div>
   );
 }

@@ -1,95 +1,112 @@
-import { createClient } from "@/lib/supabase/server";
+import { createClient as createServerClient } from "@/lib/supabase/server";
+import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
   try {
-    const supabase = await createClient();
+    const supabase = await createServerClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    const admin = createAdminClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      { auth: { autoRefreshToken: false, persistSession: false } },
+    );
+
     const body = await req.json();
+    console.log("=== ORDER POST ===");
+    console.log("user:", user?.email ?? "guest");
+    console.log("body keys:", Object.keys(body));
+    console.log("items count:", body.items?.length);
+    console.log("address:", body.address);
+    console.log("payment_method:", body.payment_method);
+    console.log(
+      "SERVICE_ROLE_KEY set:",
+      !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+    );
+
     const { items, address, payment_method, guest_name, guest_phone } = body;
 
     if (!items?.length || !address || !payment_method) {
+      console.log("VALIDATION FAILED:", {
+        items: !!items?.length,
+        address: !!address,
+        payment_method: !!payment_method,
+      });
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 },
       );
     }
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
     const total = items.reduce(
-      (sum: number, item: { price: number; quantity: number }) =>
-        sum + item.price * item.quantity,
+      (sum: number, i: { price: number; quantity: number }) =>
+        sum + i.price * i.quantity,
       0,
     );
 
-    // Create order
-    const { data: order, error: orderError } = await supabase
+    console.log("Inserting order, total:", total);
+
+    const { data: order, error: orderError } = await admin
       .from("orders")
       .insert({
         user_id: user?.id ?? null,
-        guest_name: user ? null : (guest_name ?? "Guest"),
-        guest_phone: user ? null : (guest_phone ?? null),
+        guest_name: guest_name ?? null,
+        guest_phone: guest_phone ?? null,
         address,
         payment_method,
-        total,
         status: "pending",
+        total,
       })
       .select()
       .single();
 
-    if (orderError || !order) {
-      return NextResponse.json({ error: orderError?.message }, { status: 500 });
+    if (orderError) {
+      console.error("ORDER INSERT ERROR:", orderError);
+      return NextResponse.json(
+        { error: orderError.message, details: orderError },
+        { status: 400 },
+      );
     }
 
-    // Insert order items
-    const orderItems = items.map(
-      (item: { product_id: string; quantity: number; price: number }) => ({
-        order_id: order.id,
-        product_id: item.product_id,
-        quantity: item.quantity,
-        unit_price: item.price,
-      }),
+    console.log("Order created:", order.id);
+
+    const { error: itemsError } = await admin.from("order_items").insert(
+      items.map(
+        (i: { product_id: string; quantity: number; price: number }) => ({
+          order_id: order.id,
+          product_id: i.product_id,
+          quantity: i.quantity,
+          unit_price: i.price,
+        }),
+      ),
     );
 
-    const { error: itemsError } = await supabase
-      .from("order_items")
-      .insert(orderItems);
-
     if (itemsError) {
-      return NextResponse.json({ error: itemsError.message }, { status: 500 });
+      console.error("ORDER ITEMS INSERT ERROR:", itemsError);
+      return NextResponse.json(
+        { error: itemsError.message, details: itemsError },
+        { status: 400 },
+      );
     }
 
-    return NextResponse.json({ order }, { status: 201 });
-  } catch (err) {
-    return NextResponse.json({ error: "Unexpected error" }, { status: 500 });
-  }
-}
-
-export async function GET(req: NextRequest) {
-  try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (user) {
+      await admin
+        .from("profiles")
+        .update({
+          full_name: guest_name ?? null,
+          phone: guest_phone ?? null,
+          delivery_address: address ?? null,
+        })
+        .eq("id", user.id);
     }
 
-    const { data: orders, error } = await supabase
-      .from("orders")
-      .select("*, order_items(*, product:products(*))")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false });
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
-
-    return NextResponse.json({ orders });
-  } catch (err) {
-    return NextResponse.json({ error: "Unexpected error" }, { status: 500 });
+    return NextResponse.json({ order });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error("=== ORDERS API EXCEPTION ===", msg);
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

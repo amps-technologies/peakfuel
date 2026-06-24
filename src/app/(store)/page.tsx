@@ -16,7 +16,6 @@ const catMap: Record<string, string> = {
   safety: "safety",
 };
 
-// Text-only category labels — no emoji in separators
 const CATEGORY_LABELS: Record<string, string> = {
   tank: "Tanks",
   refill: "Refills",
@@ -27,9 +26,6 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 const CATEGORY_ORDER = ["tank", "refill", "regulator", "accessory", "safety"];
 
-// How many products to show in the collapsed "preview" row(s)
-// Desktop shows 5 per row, mobile shows 2 per row
-// We show 1 row on desktop (5 items) and 1 row on mobile (2 items)
 const DESKTOP_PREVIEW = 5;
 const MOBILE_PREVIEW = 4;
 
@@ -42,7 +38,6 @@ const categoryPills = [
   { label: "🧯 Safety", short: "Safety", value: "safety" },
 ];
 
-// Responsive hook for preview count
 function useIsDesktop() {
   const [isDesktop, setIsDesktop] = useState(true);
   useEffect(() => {
@@ -60,7 +55,7 @@ interface CategorySectionProps {
   onSeeAll: () => void;
 }
 
-function CategorySection({ cat, products, onSeeAll }: CategorySectionProps) {
+function CategorySection({ cat, products }: CategorySectionProps) {
   const [expanded, setExpanded] = useState(false);
   const isDesktop = useIsDesktop();
   const previewCount = isDesktop ? DESKTOP_PREVIEW : MOBILE_PREVIEW;
@@ -69,7 +64,7 @@ function CategorySection({ cat, products, onSeeAll }: CategorySectionProps) {
 
   return (
     <div>
-      {/* Separator with category name */}
+      {/* Category separator */}
       <div className="flex items-center gap-3 mb-3">
         <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">
           {CATEGORY_LABELS[cat] ?? cat}
@@ -95,14 +90,12 @@ function CategorySection({ cat, products, onSeeAll }: CategorySectionProps) {
         )}
       </div>
 
-      {/* Product grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
         {visible.map((product) => (
           <ProductCard key={product.id} product={product} />
         ))}
       </div>
 
-      {/* Expand/collapse button below grid (for mobile usability) */}
       {hasMore && (
         <button
           onClick={() => setExpanded((e) => !e)}
@@ -110,12 +103,13 @@ function CategorySection({ cat, products, onSeeAll }: CategorySectionProps) {
         >
           {expanded ? (
             <>
-              <ChevronDown size={13} /> Show less
+              <ChevronDown size={13} />
+              Show less
             </>
           ) : (
             <>
-              <ChevronRight size={13} /> Show all {products.length}{" "}
-              {CATEGORY_LABELS[cat]?.toLowerCase()}
+              <ChevronRight size={13} />
+              Show all {products.length} {CATEGORY_LABELS[cat]?.toLowerCase()}
             </>
           )}
         </button>
@@ -132,29 +126,37 @@ function ShopContent() {
 
   const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [fadeIn, setFadeIn] = useState(true);
+
+  const [visible, setVisible] = useState(false);
 
   const supabase = createClient();
 
+  // Fetch all products once
   useEffect(() => {
     const fetchProducts = async () => {
-      setFadeIn(false);
       const { data } = await supabase
         .from("products")
         .select("*")
         .eq("in_stock", true)
+        .order("category", { ascending: true })
         .order("sort_order", { ascending: true })
         .order("created_at", { ascending: false });
 
       setAllProducts((data as Product[]) ?? []);
       setLoading(false);
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => setFadeIn(true));
-      });
     };
     fetchProducts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    // Fade out
+    // const set = () => setVisible(false);
+    // set();
+    // Wait for fade out to complete, then fade back in
+    const t = setTimeout(() => setVisible(true), 50);
+    return () => clearTimeout(t);
+  }, [category, searchQuery]);
 
   const products = useMemo(() => {
     let list = allProducts;
@@ -174,7 +176,6 @@ function ShopContent() {
     return list;
   }, [allProducts, category, searchQuery]);
 
-  // Group by category only when showing "All" with no search
   const grouped = useMemo(() => {
     const showingAll = !category && !searchQuery.trim();
     if (!showingAll) return null;
@@ -202,7 +203,7 @@ function ShopContent() {
   return (
     <div className="max-w-6xl mx-auto px-4 py-6">
       {/* Hero */}
-      <div className="bg-gradient-to-r from-sky-500 to-sky-600 rounded-2xl p-6 mb-6 text-white flex items-center justify-between">
+      <div className="bg-linear-to-r from-sky-500 to-sky-600 rounded-2xl p-6 mb-6 text-white flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold mb-1">Fast LPG Delivery</h1>
           <p className="text-sky-100 text-sm mb-4">
@@ -239,7 +240,10 @@ function ShopContent() {
             {categoryPills.map((pill) => (
               <button
                 key={pill.value}
-                onClick={() => switchCategory(pill.value)}
+                onClick={() => {
+                  switchCategory(pill.value);
+                  setVisible(false);
+                }}
                 className={`px-3 sm:px-4 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm border transition-colors duration-150 cursor-pointer whitespace-nowrap shrink-0 font-medium
                   ${
                     category === pill.value
@@ -252,7 +256,7 @@ function ShopContent() {
               </button>
             ))}
           </div>
-          <div className="absolute right-0 top-0 bottom-0.5 w-8 bg-gradient-to-l from-gray-50 to-transparent pointer-events-none sm:hidden" />
+          <div className="absolute right-0 top-0 bottom-0.5 w-8 bg-linear-to-l from-gray-50 to-transparent pointer-events-none sm:hidden" />
         </div>
       </div>
 
@@ -280,77 +284,78 @@ function ShopContent() {
         </div>
       )}
 
-      {/* Products */}
-      <div
-        style={{
-          opacity: fadeIn ? 1 : 0,
-          transform: fadeIn ? "translateY(0)" : "translateY(6px)",
-          transition: "opacity 250ms ease-out, transform 250ms ease-out",
-        }}
-      >
-        {loading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-            {Array.from({ length: 10 }).map((_, i) => (
-              <div
-                key={i}
-                className="bg-white border border-gray-100 rounded-xl overflow-hidden animate-pulse"
-              >
-                <div className="aspect-square bg-gray-100" />
-                <div className="p-3 space-y-2">
-                  <div className="h-3 bg-gray-100 rounded w-3/4" />
-                  <div className="h-3 bg-gray-100 rounded w-1/2" />
-                  <div className="h-7 bg-gray-100 rounded mt-2" />
-                </div>
+      {/* Products — key triggers CSS animation on every filter change */}
+      {loading ? (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+          {Array.from({ length: 10 }).map((_, i) => (
+            <div
+              key={i}
+              className="bg-white border border-gray-100 rounded-xl overflow-hidden animate-pulse"
+            >
+              <div className="aspect-square bg-gray-100" />
+              <div className="p-3 space-y-2">
+                <div className="h-3 bg-gray-100 rounded w-3/4" />
+                <div className="h-3 bg-gray-100 rounded w-1/2" />
+                <div className="h-7 bg-gray-100 rounded mt-2" />
               </div>
-            ))}
-          </div>
-        ) : products.length === 0 ? (
-          <div className="text-center py-16 text-gray-400">
-            <p className="text-4xl mb-2">🔍</p>
-            <p>
-              {searchQuery
-                ? `No products found for "${searchQuery}"`
-                : "No products found."}
-            </p>
-          </div>
-        ) : grouped ? (
-          // "All" view — grouped with expand/collapse per category
-          <div className="space-y-8">
-            {grouped.map(({ category: cat, products: catProducts }) => (
-              <CategorySection
-                key={cat}
-                cat={cat}
-                products={catProducts}
-                onSeeAll={() => {
-                  const pill =
-                    Object.entries(catMap).find(([, v]) => v === cat)?.[0] ??
-                    "";
-                  switchCategory(pill);
-                }}
-              />
-            ))}
-          </div>
-        ) : (
-          // Filtered/search view — flat grid, no grouping needed
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-            {products.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
-        )}
-      </div>
-      {/* End of products note */}
-      {!loading && products.length > 0 && (
-        <div className="mt-10 mb-6 flex flex-col items-center gap-2 text-gray-300 select-none">
-          <div className="flex items-center gap-3 w-full max-w-xs">
-            <div className="flex-1 h-px bg-gray-200" />
-            <span className="text-xs">end of products</span>
-            <div className="flex-1 h-px bg-gray-200" />
-          </div>
-          <p className="text-[10px] text-gray-300">
-            {products.length} product{products.length !== 1 ? "s" : ""} shown
-            {category ? " in this category" : " available"}
-          </p>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div
+          style={{
+            opacity: visible ? 1 : 0,
+            transition: "opacity 100ms ease-out",
+          }}
+        >
+          {products.length === 0 ? (
+            <div className="text-center py-16 text-gray-400">
+              <p className="text-4xl mb-2">🔍</p>
+              <p>
+                {searchQuery
+                  ? `No products found for "${searchQuery}"`
+                  : "No products found."}
+              </p>
+            </div>
+          ) : grouped ? (
+            <div className="space-y-8">
+              {grouped.map(({ category: cat, products: catProducts }) => (
+                <CategorySection
+                  key={cat}
+                  cat={cat}
+                  products={catProducts}
+                  onSeeAll={() => {
+                    const pill =
+                      Object.entries(catMap).find(([, v]) => v === cat)?.[0] ??
+                      "";
+                    switchCategory(pill);
+                  }}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+              {products.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+          )}
+
+          {/* End of products note */}
+          {products.length > 0 && (
+            <div className="mt-10 mb-6 flex flex-col items-center gap-2 text-gray-300 select-none">
+              <div className="flex items-center gap-3 w-full max-w-xs">
+                <div className="flex-1 h-px bg-gray-200" />
+                <span className="text-xs">end of products</span>
+                <div className="flex-1 h-px bg-gray-200" />
+              </div>
+              <p className="text-[10px] text-gray-300">
+                {products.length} product{products.length !== 1 ? "s" : ""}{" "}
+                shown
+                {category ? " in this category" : " available"}
+              </p>
+            </div>
+          )}
         </div>
       )}
     </div>

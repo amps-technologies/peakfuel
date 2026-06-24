@@ -13,6 +13,8 @@ import {
 } from "lucide-react";
 import { showToast } from "@/components/Toast";
 import type { Delivery, Order } from "@/types";
+import Link from "next/link";
+import { extractCoords } from "@/lib/address";
 
 const TrackingMap = dynamic(() => import("@/components/TrackingMap"), {
   ssr: false,
@@ -27,7 +29,7 @@ const steps = [
 ];
 
 // Statuses where map should be shown
-const SHOW_MAP_STATUSES = ["on_the_way"];
+
 const ACTIVE_STATUSES = ["pending", "confirmed", "packed", "on_the_way"];
 
 export default function TrackPage() {
@@ -327,31 +329,38 @@ export default function TrackPage() {
           </div>
           <div className="h-72 rounded-xl overflow-hidden bg-sky-50">
             {(() => {
-              const match = order?.address?.match(
-                /\[(-?\d+\.\d+),(-?\d+\.\d+)\]/,
-              );
-              const dLat = match ? parseFloat(match[1]) : null;
-              const dLng = match ? parseFloat(match[2]) : null;
+              const coords = extractCoords(order?.address ?? "");
               return (
                 <TrackingMap
                   riderLat={delivery?.lat ?? null}
                   riderLng={delivery?.lng ?? null}
-                  destLat={dLat}
-                  destLng={dLng}
+                  destLat={coords?.lat ?? null}
+                  destLng={coords?.lng ?? null}
                 />
               );
             })()}
           </div>
-          {isDelivered && showDeliveredMap && (
-            <p className="text-xs text-center text-gray-400 mt-2">
-              Map will hide shortly now that your order is delivered
-            </p>
-          )}
-          {!delivery?.lat && (
-            <p className="text-xs text-gray-400 mt-2 text-center">
-              Map updates automatically once rider starts GPS
-            </p>
-          )}
+          {/* OSM Attribution — required by license */}
+          <p className="text-[10px] text-gray-300 mt-1.5 text-right">
+            Map data ©{" "}
+            <Link
+              href="https://www.openstreetmap.org/copyright"
+              target="_blank"
+              rel="noreferrer"
+              className="hover:text-gray-400 underline"
+            >
+              OpenStreetMap
+            </Link>{" "}
+            contributors · Routing by{" "}
+            <Link
+              href="https://openrouteservice.org"
+              target="_blank"
+              rel="noreferrer"
+              className="hover:text-gray-400 underline"
+            >
+              OpenRouteService
+            </Link>
+          </p>
         </div>
       )}
 
