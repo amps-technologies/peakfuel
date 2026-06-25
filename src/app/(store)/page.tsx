@@ -307,7 +307,7 @@ function ShopContent() {
         <div
           style={{
             opacity: visible ? 1 : 0,
-            transition: "opacity 100ms ease-in-out",
+            transition: "opacity 400ms ease-out",
           }}
         >
           {products.length === 0 ? (
