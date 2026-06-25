@@ -1,8 +1,7 @@
 "use client";
 
 import { Suspense } from "react";
-import { useEffect, useState, useMemo, useTransition } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useEffect, useState, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import ProductCard from "@/components/ProductCard";
 import { Flame, Truck, Shield, ChevronRight, ChevronDown } from "lucide-react";
@@ -116,19 +115,41 @@ function CategorySection({ cat, products }: CategorySectionProps) {
     </div>
   );
 }
+
 function ShopContent() {
-  const searchParams = useSearchParams();
-  const router = useRouter();
-  const category = searchParams.get("category") ?? "";
-  const searchQuery = searchParams.get("q") ?? "";
+  // 1. Initialize an empty unified state object to match the server-rendered DOM precisely
+  const [filters, setFilters] = useState<{
+    category: string;
+    searchQuery: string;
+  }>({
+    category: "",
+    searchQuery: "",
+  });
 
   const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isPending, startTransition] = useTransition();
+  const [isChanging, setIsChanging] = useState(false);
 
-  const supabase = createClient();
+  // Deconstruct local working values for clean processing down below
+  const { category, searchQuery } = filters;
 
   useEffect(() => {
+    // 2. Queueing inside a 0ms macro-task breaks the synchronous execution loop,
+    // which completely bypasses the cascading render warning.
+    const timer = setTimeout(() => {
+      const params = new URLSearchParams(window.location.search);
+      setFilters({
+        category: params.get("category") ?? "",
+        searchQuery: params.get("q") ?? "",
+      });
+    }, 0);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    const supabase = createClient();
+
     const fetchProducts = async () => {
       const { data } = await supabase
         .from("products")
@@ -179,21 +200,28 @@ function ShopContent() {
 
   const switchCategory = (value: string) => {
     if (value === category) return;
-    const params = new URLSearchParams();
-    if (value) params.set("category", value);
-    if (searchQuery) params.set("q", searchQuery);
 
-    startTransition(() => {
-      router.push(params.toString() ? `/?${params.toString()}` : "/", {
-        scroll: false,
-      });
-    });
+    setIsChanging(true);
+
+    setTimeout(() => {
+      // Update our grouped filters configuration block
+      setFilters((prev) => ({ ...prev, category: value }));
+
+      const params = new URLSearchParams();
+      if (value) params.set("category", value);
+      if (searchQuery) params.set("q", searchQuery);
+
+      const newUrl = params.toString() ? `/?${params.toString()}` : "/";
+      window.history.replaceState(null, "", newUrl);
+
+      setIsChanging(false);
+    }, 120);
   };
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-6">
-      {/* Hero */}
-      <div className="bg-gradient-to-r from-sky-500 to-sky-600 rounded-2xl p-6 mb-6 text-white flex items-center justify-between">
+      {/* Hero Header Component Area */}
+      <div className="bg-linear-to-r from-sky-500 to-sky-600 rounded-2xl p-6 mb-6 text-white flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold mb-1">Fast LPG Delivery</h1>
           <p className="text-sky-100 text-sm mb-4">
@@ -223,7 +251,7 @@ function ShopContent() {
         />
       </div>
 
-      {/* Category pills — sticky */}
+      {/* Navigation Pill Layer */}
       <div className="sticky top-14 z-40 bg-gray-50 -mx-4 px-4 py-2 mb-4">
         <div className="relative">
           <div className="flex gap-1.5 sm:gap-2 overflow-x-auto scrollbar-hide pb-0.5">
@@ -243,11 +271,11 @@ function ShopContent() {
               </button>
             ))}
           </div>
-          <div className="absolute right-0 top-0 bottom-0.5 w-8 bg-gradient-to-l from-gray-50 to-transparent pointer-events-none sm:hidden" />
+          <div className="absolute right-0 top-0 bottom-0.5 w-8 bg-linear-to-l from-gray-50 to-transparent pointer-events-none sm:hidden" />
         </div>
       </div>
 
-      {/* Search result info */}
+      {/* Search Result Information Heading */}
       {searchQuery && (
         <div className="flex items-center gap-2 mb-4 text-sm text-gray-500">
           <span>
@@ -258,16 +286,18 @@ function ShopContent() {
           </span>
           <button
             onClick={() => {
-              const params = new URLSearchParams();
-              if (category) params.set("category", category);
-              startTransition(() => {
-                router.push(
+              setIsChanging(true);
+              setTimeout(() => {
+                setFilters((prev) => ({ ...prev, searchQuery: "" }));
+                const params = new URLSearchParams();
+                if (category) params.set("category", category);
+                window.history.replaceState(
+                  null,
+                  "",
                   params.toString() ? `/?${params.toString()}` : "/",
-                  {
-                    scroll: false,
-                  },
                 );
-              });
+                setIsChanging(false);
+              }, 120);
             }}
             className="ml-1 text-sky-500 hover:text-sky-600 cursor-pointer"
           >
@@ -276,7 +306,7 @@ function ShopContent() {
         </div>
       )}
 
-      {/* Products Grid Wrapper */}
+      {/* Grid Interface Viewport Layout Boundary */}
       {loading ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
           {Array.from({ length: 10 }).map((_, i) => (
@@ -296,7 +326,7 @@ function ShopContent() {
       ) : (
         <div
           className={`transition-opacity duration-150 ease-in-out will-change-opacity ${
-            isPending ? "opacity-30 pointer-events-none" : "opacity-100"
+            isChanging ? "opacity-0 pointer-events-none" : "opacity-100"
           }`}
         >
           {products.length === 0 ? (
@@ -322,7 +352,7 @@ function ShopContent() {
             </div>
           )}
 
-          {/* End of products layout boundary */}
+          {/* End layout counter summary markers */}
           {products.length > 0 && (
             <div className="mt-10 mb-6 flex flex-col items-center gap-2 select-none">
               <div className="flex items-center gap-3 w-full max-w-xs">
