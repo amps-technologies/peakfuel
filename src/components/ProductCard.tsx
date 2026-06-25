@@ -26,7 +26,11 @@ export default function ProductCard({ product }: Props) {
   return (
     <div className="bg-white border border-gray-100 rounded-xl overflow-hidden hover:border-sky-200 hover:shadow-sm transition-all group flex flex-col">
       {/* Clicking image or name goes to product detail */}
-      <Link href={`/products/${product.id}`} className="flex flex-col flex-1">
+      <Link
+        href={`/products/${product.id}`}
+        scroll={false}
+        className="flex flex-col flex-1"
+      >
         {/* Image — square aspect ratio */}
         <div className="relative w-full aspect-square bg-sky-50 overflow-hidden">
           {product.image_url ? (
