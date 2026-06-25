@@ -19,29 +19,29 @@ interface CartStore {
   setCartOpen: (open: boolean) => void;
 }
 
-const storageKey = (id: string) => `gasgo_cart_${id}`;
+const localKey = (id: string) => `gasgo_cart_${id}`;
 
-const load = (userId: string): CartItem[] => {
+const loadLocal = (userId: string): CartItem[] => {
   if (typeof window === "undefined") return [];
   try {
-    const raw = localStorage.getItem(storageKey(userId));
+    const raw = localStorage.getItem(localKey(userId));
     return raw ? (JSON.parse(raw) as CartItem[]) : [];
   } catch {
     return [];
   }
 };
 
-const save = (userId: string, items: CartItem[]) => {
+const saveLocal = (userId: string, items: CartItem[]) => {
   if (typeof window === "undefined") return;
   try {
-    localStorage.setItem(storageKey(userId), JSON.stringify(items));
+    localStorage.setItem(localKey(userId), JSON.stringify(items));
   } catch {}
 };
 
-const remove = (userId: string) => {
+const removeLocal = (userId: string) => {
   if (typeof window === "undefined") return;
   try {
-    localStorage.removeItem(storageKey(userId));
+    localStorage.removeItem(localKey(userId));
   } catch {}
 };
 
@@ -55,11 +55,11 @@ export const useCartStore = create<CartStore>((set, get) => ({
     if (id === prev) return;
 
     if (id) {
-      // User logged in — restore their saved cart
-      const saved = load(id);
+      // Load from localStorage immediately for fast UX
+      // CartSync will overwrite with server data if different
+      const saved = loadLocal(id);
       set({ userId: id, items: saved });
     } else {
-      // User logged out — wipe memory, keep localStorage intact
       set({ userId: null, items: [] });
     }
   },
@@ -75,7 +75,7 @@ export const useCartStore = create<CartStore>((set, get) => ({
           )
         : [...state.items, { product, quantity }];
 
-      if (state.userId) save(state.userId, newItems);
+      if (state.userId) saveLocal(state.userId, newItems);
       return { items: newItems };
     });
   },
@@ -83,7 +83,7 @@ export const useCartStore = create<CartStore>((set, get) => ({
   removeItem: (productId) => {
     set((state) => {
       const newItems = state.items.filter((i) => i.product.id !== productId);
-      if (state.userId) save(state.userId, newItems);
+      if (state.userId) saveLocal(state.userId, newItems);
       return { items: newItems };
     });
   },
@@ -97,14 +97,14 @@ export const useCartStore = create<CartStore>((set, get) => ({
       const newItems = state.items.map((i) =>
         i.product.id === productId ? { ...i, quantity } : i,
       );
-      if (state.userId) save(state.userId, newItems);
+      if (state.userId) saveLocal(state.userId, newItems);
       return { items: newItems };
     });
   },
 
   clearCart: () => {
     const { userId } = get();
-    if (userId) remove(userId);
+    if (userId) removeLocal(userId);
     set({ items: [] });
   },
 
