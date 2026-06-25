@@ -19,13 +19,6 @@ export default async function ProductPage({ params }: Props) {
     .single();
   if (!product) notFound();
 
-  // const categoryEmoji: Record<string, string> = {
-  //   tank: "🛢️",
-  //   refill: "🔄",
-  //   regulator: "🔧",
-  //   accessory: "🔩",
-  //   safety: "🧯",
-  // };
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:py-8 py-4">

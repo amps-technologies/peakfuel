@@ -26,7 +26,6 @@ import {
 import type { Product, Order, OrderStatus, Category } from "@/types";
 import { showToast } from "@/components/Toast";
 import Link from "next/link";
-import Image from "next/image";
 
 type AdminTab = "orders" | "products" | "reports" | "rider";
 
