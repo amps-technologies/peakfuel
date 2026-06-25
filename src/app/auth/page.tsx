@@ -3,6 +3,7 @@ import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Flame, Eye, EyeOff, Check, X } from "lucide-react";
+import Image from "next/image";
 
 type Mode = "signin" | "signup";
 
@@ -216,8 +217,9 @@ export default function AuthPage() {
       <div className="bg-white border border-gray-100 rounded-2xl p-8 shadow-sm">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="w-12 h-12 bg-sky-500 rounded-2xl flex items-center justify-center mx-auto mb-3">
-            <Flame size={24} className="text-white" />
+          <div className="w-12 h-12 flex items-center justify-center mx-auto mb-3">
+            {/* <Flame size={24} className="text-white" /> */}
+            <Image src={"/logo.png"} alt="logo" height={50} width={50} />
           </div>
           <h1 className="text-xl font-bold text-gray-900">
             {mode === "signin" ? "Welcome back" : "Create account"}
