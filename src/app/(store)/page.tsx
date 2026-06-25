@@ -154,7 +154,7 @@ function ShopContent() {
     // const set = () => setVisible(false);
     // set();
     // Wait for fade out to complete, then fade back in
-    const t = setTimeout(() => setVisible(true), 500);
+    const t = setTimeout(() => setVisible(true), 200);
     return () => clearTimeout(t);
   }, [category, searchQuery]);
 
@@ -346,7 +346,7 @@ function ShopContent() {
           )}
 
           {/* End of products note */}
-          {products.length > 0 && (
+          {products.length > 0 && visible && (
             <div className="mt-10 mb-6 flex flex-col items-center gap-2 text-gray-300 select-none">
               <div className="flex items-center gap-3 w-full max-w-xs">
                 <div className="flex-1 h-px bg-gray-200" />
