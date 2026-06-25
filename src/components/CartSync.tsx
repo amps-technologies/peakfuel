@@ -33,22 +33,22 @@ export default function CartSync() {
     }
   };
 
+  console.log("test");
+
   // Save cart to Supabase (debounced to avoid too many writes)
   const saveServerCart = (uid: string, cartItems: typeof items) => {
     if (saveTimeout.current) clearTimeout(saveTimeout.current);
     saveTimeout.current = setTimeout(async () => {
       if (isLoading.current) return; // don't save while loading
       try {
-        await supabase
-          .from("carts")
-          .upsert(
-            {
-              user_id: uid,
-              items: cartItems,
-              updated_at: new Date().toISOString(),
-            },
-            { onConflict: "user_id" },
-          );
+        await supabase.from("carts").upsert(
+          {
+            user_id: uid,
+            items: cartItems,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "user_id" },
+        );
       } catch {
         // Non-fatal — local cart still works
       }
