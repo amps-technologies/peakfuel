@@ -1,6 +1,7 @@
 "use client";
+
 import { Suspense } from "react";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useTransition } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import ProductCard from "@/components/ProductCard";
@@ -52,7 +53,6 @@ function useIsDesktop() {
 interface CategorySectionProps {
   cat: string;
   products: Product[];
-  onSeeAll: () => void;
 }
 
 function CategorySection({ cat, products }: CategorySectionProps) {
@@ -64,7 +64,6 @@ function CategorySection({ cat, products }: CategorySectionProps) {
 
   return (
     <div>
-      {/* Category separator */}
       <div className="flex items-center gap-3 mb-3">
         <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">
           {CATEGORY_LABELS[cat] ?? cat}
@@ -117,7 +116,6 @@ function CategorySection({ cat, products }: CategorySectionProps) {
     </div>
   );
 }
-
 function ShopContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -126,12 +124,10 @@ function ShopContent() {
 
   const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-
-  const [visible, setVisible] = useState(false);
+  const [isPending, startTransition] = useTransition();
 
   const supabase = createClient();
 
-  // Fetch all products once
   useEffect(() => {
     const fetchProducts = async () => {
       const { data } = await supabase
@@ -146,17 +142,7 @@ function ShopContent() {
       setLoading(false);
     };
     fetchProducts();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  useEffect(() => {
-    // Fade out
-    // const set = () => setVisible(false);
-    // set();
-    // Wait for fade out to complete, then fade back in
-    const t = setTimeout(() => setVisible(true), 200);
-    return () => clearTimeout(t);
-  }, [category, searchQuery]);
 
   const products = useMemo(() => {
     let list = allProducts;
@@ -196,16 +182,18 @@ function ShopContent() {
     const params = new URLSearchParams();
     if (value) params.set("category", value);
     if (searchQuery) params.set("q", searchQuery);
-    const url = params.toString() ? `/?${params.toString()}` : "/";
-    router.push(url, { scroll: false });
-  };
 
-  console.log(visible);
+    startTransition(() => {
+      router.push(params.toString() ? `/?${params.toString()}` : "/", {
+        scroll: false,
+      });
+    });
+  };
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-6">
       {/* Hero */}
-      <div className="bg-linear-to-r from-sky-500 to-sky-600 rounded-2xl p-6 mb-6 text-white flex items-center justify-between">
+      <div className="bg-gradient-to-r from-sky-500 to-sky-600 rounded-2xl p-6 mb-6 text-white flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold mb-1">Fast LPG Delivery</h1>
           <p className="text-sky-100 text-sm mb-4">
@@ -242,10 +230,7 @@ function ShopContent() {
             {categoryPills.map((pill) => (
               <button
                 key={pill.value}
-                onClick={() => {
-                  setVisible(false);
-                  switchCategory(pill.value);
-                }}
+                onClick={() => switchCategory(pill.value)}
                 className={`px-3 sm:px-4 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm border transition-colors duration-150 cursor-pointer whitespace-nowrap shrink-0 font-medium
                   ${
                     category === pill.value
@@ -258,12 +243,12 @@ function ShopContent() {
               </button>
             ))}
           </div>
-          <div className="absolute right-0 top-0 bottom-0.5 w-8 bg-linear-to-l from-gray-50 to-transparent pointer-events-none sm:hidden" />
+          <div className="absolute right-0 top-0 bottom-0.5 w-8 bg-gradient-to-l from-gray-50 to-transparent pointer-events-none sm:hidden" />
         </div>
       </div>
 
       {/* Search result info */}
-      {/* {searchQuery && (
+      {searchQuery && (
         <div className="flex items-center gap-2 mb-4 text-sm text-gray-500">
           <span>
             {products.length} result{products.length !== 1 ? "s" : ""} for
@@ -275,8 +260,13 @@ function ShopContent() {
             onClick={() => {
               const params = new URLSearchParams();
               if (category) params.set("category", category);
-              router.push(params.toString() ? `/?${params.toString()}` : "/", {
-                scroll: false,
+              startTransition(() => {
+                router.push(
+                  params.toString() ? `/?${params.toString()}` : "/",
+                  {
+                    scroll: false,
+                  },
+                );
               });
             }}
             className="ml-1 text-sky-500 hover:text-sky-600 cursor-pointer"
@@ -284,9 +274,9 @@ function ShopContent() {
             Clear
           </button>
         </div>
-      )} */}
+      )}
 
-      {/* Products — key triggers CSS animation on every filter change */}
+      {/* Products Grid Wrapper */}
       {loading ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
           {Array.from({ length: 10 }).map((_, i) => (
@@ -305,10 +295,9 @@ function ShopContent() {
         </div>
       ) : (
         <div
-          style={{
-            opacity: visible ? 1 : 0,
-            transition: "opacity 400ms ease-out",
-          }}
+          className={`transition-opacity duration-150 ease-in-out will-change-opacity ${
+            isPending ? "opacity-30 pointer-events-none" : "opacity-100"
+          }`}
         >
           {products.length === 0 ? (
             <div className="text-center py-16 text-gray-400">
@@ -322,35 +311,23 @@ function ShopContent() {
           ) : grouped ? (
             <div className="space-y-8">
               {grouped.map(({ category: cat, products: catProducts }) => (
-                <CategorySection
-                  key={cat}
-                  cat={cat}
-                  products={catProducts}
-                  onSeeAll={() => {
-                    const pill =
-                      Object.entries(catMap).find(([, v]) => v === cat)?.[0] ??
-                      "";
-                    switchCategory(pill);
-                  }}
-                />
+                <CategorySection key={cat} cat={cat} products={catProducts} />
               ))}
             </div>
           ) : (
-            visible && (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-                {products.map((product) => (
-                  <ProductCard key={product.id} product={product} />
-                ))}
-              </div>
-            )
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+              {products.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
           )}
 
-          {/* End of products note */}
-          {products.length > 0 && visible && (
-            <div className="mt-10 mb-6 flex flex-col items-center gap-2 text-gray-300 select-none">
+          {/* End of products layout boundary */}
+          {products.length > 0 && (
+            <div className="mt-10 mb-6 flex flex-col items-center gap-2 select-none">
               <div className="flex items-center gap-3 w-full max-w-xs">
                 <div className="flex-1 h-px bg-gray-200" />
-                <span className="text-xs">end of products</span>
+                <span className="text-xs text-gray-300">end of products</span>
                 <div className="flex-1 h-px bg-gray-200" />
               </div>
               <p className="text-[10px] text-gray-300">

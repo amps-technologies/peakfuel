@@ -25,15 +25,16 @@ const config: Config = {
           green: "#22c55e",
           white: "#ffffff",
         },
-        keyframes: {
-          fadeIn: {
-            "0%": { opacity: "0" },
-            "100%": { opacity: "1" },
-          },
+      },
+      // keyframes and animation must be siblings of colors, not inside it
+      keyframes: {
+        fadeIn: {
+          "0%": { opacity: "0", transform: "translateY(6px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
         },
-        animation: {
-          "fade-in": "fadeIn 0.5s ease-out forwards",
-        },
+      },
+      animation: {
+        "fade-in": "fadeIn 220ms ease-out forwards",
       },
     },
   },
