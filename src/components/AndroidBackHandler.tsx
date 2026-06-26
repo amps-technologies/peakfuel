@@ -1,14 +1,17 @@
 "use client";
 import { useEffect, useState, useRef } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useCartStore } from "@/store/cartStore";
 
 export default function AndroidBackHandler() {
   const pathname = usePathname();
+  const router = useRouter();
+
   const [exitModal, setExitModal] = useState(false);
   const [modalIn, setModalIn] = useState(false);
+
   const isHome = pathname === "/";
-  const blockedRef = useRef(false);
+  const store = useCartStore();
 
   const openModal = () => {
     setExitModal(true);
@@ -20,59 +23,58 @@ export default function AndroidBackHandler() {
     setTimeout(() => setExitModal(false), 250);
   };
 
+  // Sync back button interception logic on mount and path changes safely
   useEffect(() => {
-    // Push a sentinel state once so we have something to pop
-    if (!window.history.state?._sentinel) {
-      window.history.replaceState({ _sentinel: true }, "");
-      window.history.pushState({ _sentinel: true }, "");
-    }
-
-    const onPopState = () => {
-      // If cart is open — close it, re-push sentinel, no navigation
-      const store = useCartStore.getState();
-      if (store.isCartOpen) {
-        store.setCartOpen(false);
-        window.history.pushState({ _sentinel: true }, "");
-        return;
+    // 1. Setup a clean visual boundary state
+    const pushControlState = () => {
+      if (
+        typeof window !== "undefined" &&
+        window.history.state?.type !== "back-trap"
+      ) {
+        window.history.pushState({ type: "back-trap" }, "");
       }
-
-      // If exit modal is showing — close it, re-push sentinel
-      if (blockedRef.current) {
-        closeModal();
-        window.history.pushState({ _sentinel: true }, "");
-        return;
-      }
-
-      // If on home page — show exit modal, re-push sentinel
-      if (isHome) {
-        openModal();
-        blockedRef.current = true;
-        window.history.pushState({ _sentinel: true }, "");
-        return;
-      }
-
-      // Any other page — allow normal back, don't re-push
-      // Next.js router handles the navigation
     };
 
-    window.addEventListener("popstate", onPopState);
-    return () => window.removeEventListener("popstate", onPopState);
-  }, [isHome]);
+    // Always push a single control state block on mount or path update
+    pushControlState();
 
-  // Re-push sentinel when cart opens so back can close it
-  useEffect(() => {
-    const unsub = useCartStore.subscribe((state) => {
-      if (state.isCartOpen) {
-        window.history.pushState({ _sentinel: true }, "");
+    const handlePopState = (event: PopStateEvent) => {
+      // Check if the cart drawer layer is currently open
+      if (store.isCartOpen) {
+        store.setCartOpen(false);
+        pushControlState(); // Re-trap the stack frame
+        return;
       }
-    });
-    return unsub;
-  }, []);
 
-  // Sync blockedRef with modal state
+      // Check if the confirmation exit modal is currently open
+      if (exitModal) {
+        closeModal();
+        pushControlState(); // Re-trap the stack frame
+        return;
+      }
+
+      // Handle Home page specific app termination logic
+      if (isHome) {
+        openModal();
+        pushControlState(); // Keep them on the home screen layout until verified
+        return;
+      }
+
+      // If they are on a deeper subpage, let the hardware back button act naturally
+      // We trigger a standard router.back() to let Next.js safely resolve path chunk histories
+      router.back();
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [isHome, store.isCartOpen, exitModal, router]);
+
+  // Synchronize dynamic cart opening actions to force a control state block instantly
   useEffect(() => {
-    if (!exitModal) blockedRef.current = false;
-  }, [exitModal]);
+    if (store.isCartOpen && window.history.state?.type !== "back-trap") {
+      window.history.pushState({ type: "back-trap" }, "");
+    }
+  }, [store.isCartOpen]);
 
   if (!exitModal) return null;
 
@@ -115,8 +117,10 @@ export default function AndroidBackHandler() {
           <button
             onClick={() => {
               closeModal();
-              // Navigate away for real after modal closes
-              setTimeout(() => window.history.go(-2), 260);
+              // Exit the app gracefully by backing completely out of our control states
+              setTimeout(() => {
+                window.history.go(-2);
+              }, 260);
             }}
             className="flex-1 py-2.5 bg-gray-900 text-white rounded-xl text-sm font-semibold hover:bg-gray-800 cursor-pointer transition-colors"
           >
