@@ -9,7 +9,6 @@ export default function CartSync() {
   const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isLoading = useRef(false);
 
-  // Load cart from Supabase when user logs in
   const loadServerCart = async (uid: string) => {
     isLoading.current = true;
     try {
@@ -20,27 +19,21 @@ export default function CartSync() {
         .maybeSingle();
 
       if (data?.items && Array.isArray(data.items) && data.items.length > 0) {
-        // Server has items — use server cart (cross-device sync)
         useCartStore.setState({ items: data.items });
-        // Also update localStorage
-        localStorage.setItem(`gasgo_cart_${uid}`, JSON.stringify(data.items));
+        try {
+          localStorage.setItem(`gasgo_cart_${uid}`, JSON.stringify(data.items));
+        } catch {}
       }
-      // If server is empty, keep whatever was loaded from localStorage
     } catch {
-      // Non-fatal — localStorage cart still works
     } finally {
       isLoading.current = false;
     }
   };
 
-  // Save cart to Supabase (debounced to avoid too many writes)
-  const saveServerCart = (
-    uid: string,
-    cartItems: typeof items,
-    immediate = false,
-  ) => {
+  const saveServerCart = (uid: string, cartItems: typeof items) => {
     if (saveTimeout.current) clearTimeout(saveTimeout.current);
-    const delay = immediate ? 0 : 1000;
+    // Use 0ms delay for empty cart (checkout), 800ms for normal changes
+    const delay = cartItems.length === 0 ? 0 : 800;
     saveTimeout.current = setTimeout(async () => {
       if (isLoading.current) return;
       try {
@@ -56,7 +49,6 @@ export default function CartSync() {
     }, delay);
   };
 
-  // Handle auth state changes
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       const uid = data.user?.id ?? null;
@@ -79,12 +71,9 @@ export default function CartSync() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Save to Supabase whenever items change
   useEffect(() => {
     if (userId && !isLoading.current) {
-      // Save immediately when cart is emptied (after checkout)
-      const immediate = items.length === 0;
-      saveServerCart(userId, items, immediate);
+      saveServerCart(userId, items);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [items, userId]);

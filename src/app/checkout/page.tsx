@@ -110,23 +110,10 @@ export default function CheckoutPage() {
     setLoading(true);
     setError("");
     try {
-      // Save delivery details to profile for next time
       await saveProfileDetails();
 
       const payload = {
-        items: items.map((i) => ({
-          product_id: i.product.id,
-          quantity: i.quantity,
-          price: i.product.price,
-        })),
-        address:
-          address +
-          (addressLat
-            ? ` [${addressLat.toFixed(6)},${addressLng?.toFixed(6)}]`
-            : ""),
-        payment_method: method,
-        guest_name: fullName || "Guest",
-        guest_phone: phone || null,
+        /* ... existing payload ... */
       };
 
       const res = await fetch("/api/orders", {
@@ -140,7 +127,27 @@ export default function CheckoutPage() {
         return;
       }
 
+      // Clear cart locally
       clearCart();
+
+      // Also clear cart in Supabase immediately (don't rely on CartSync debounce)
+      const supabase = createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (user) {
+        await supabase
+          .from("carts")
+          .upsert(
+            {
+              user_id: user.id,
+              items: [],
+              updated_at: new Date().toISOString(),
+            },
+            { onConflict: "user_id" },
+          );
+      }
+
       router.push(`/track/${data.order.id}`);
     } catch {
       setError("Network error. Please try again.");

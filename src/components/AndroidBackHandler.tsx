@@ -1,77 +1,124 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { useCartStore } from "@/store/cartStore";
 
 export default function AndroidBackHandler() {
   const pathname = usePathname();
-  const { isCartOpen, setCartOpen } = useCartStore();
   const [exitModal, setExitModal] = useState(false);
+  const [modalIn, setModalIn] = useState(false);
+  const isHome = pathname === "/";
+  const blockedRef = useRef(false);
+
+  const openModal = () => {
+    setExitModal(true);
+    setTimeout(() => setModalIn(true), 10);
+  };
+
+  const closeModal = () => {
+    setModalIn(false);
+    setTimeout(() => setExitModal(false), 250);
+  };
 
   useEffect(() => {
-    // Push a dummy state so we can detect back button press
-    window.history.pushState({ page: "current" }, "");
+    // Push a sentinel state once so we have something to pop
+    if (!window.history.state?._sentinel) {
+      window.history.replaceState({ _sentinel: true }, "");
+      window.history.pushState({ _sentinel: true }, "");
+    }
 
-    const handlePopState = () => {
-      // If cart is open — close it instead of going back
-      if (useCartStore.getState().isCartOpen) {
-        useCartStore.getState().setCartOpen(false);
-        // Re-push state so next back press is also intercepted
-        window.history.pushState({ page: "current" }, "");
+    const onPopState = () => {
+      // If cart is open — close it, re-push sentinel, no navigation
+      const store = useCartStore.getState();
+      if (store.isCartOpen) {
+        store.setCartOpen(false);
+        window.history.pushState({ _sentinel: true }, "");
         return;
       }
 
-      // If on home page — show exit confirmation
-      if (pathname === "/") {
-        setExitModal(true);
-        // Re-push state so the modal can be dismissed
-        window.history.pushState({ page: "current" }, "");
+      // If exit modal is showing — close it, re-push sentinel
+      if (blockedRef.current) {
+        closeModal();
+        window.history.pushState({ _sentinel: true }, "");
         return;
       }
 
-      // On any other page — let normal back navigation happen
-      // Don't re-push state — allow browser to go back
+      // If on home page — show exit modal, re-push sentinel
+      if (isHome) {
+        openModal();
+        blockedRef.current = true;
+        window.history.pushState({ _sentinel: true }, "");
+        return;
+      }
+
+      // Any other page — allow normal back, don't re-push
+      // Next.js router handles the navigation
     };
 
-    window.addEventListener("popstate", handlePopState);
-    return () => window.removeEventListener("popstate", handlePopState);
-  }, [pathname]);
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, [isHome]);
 
-  // Re-push state when cart opens so back button can close it
+  // Re-push sentinel when cart opens so back can close it
   useEffect(() => {
-    if (isCartOpen) {
-      window.history.pushState({ page: "cart-open" }, "");
-    }
-  }, [isCartOpen]);
+    const unsub = useCartStore.subscribe((state) => {
+      if (state.isCartOpen) {
+        window.history.pushState({ _sentinel: true }, "");
+      }
+    });
+    return unsub;
+  }, []);
+
+  // Sync blockedRef with modal state
+  useEffect(() => {
+    if (!exitModal) blockedRef.current = false;
+  }, [exitModal]);
 
   if (!exitModal) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/40 z-[200] flex items-end sm:items-center justify-center px-4 pb-8 sm:pb-0">
-      <div className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-xl">
-        <div className="px-6 pt-6 pb-4 text-center">
-          <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
-            <span className="text-2xl">👋</span>
+    <div
+      className="fixed inset-0 z-[200] flex items-center justify-center px-4"
+      style={{
+        backgroundColor: `rgba(0,0,0,${modalIn ? 0.4 : 0})`,
+        transition: "background-color 250ms ease-out",
+      }}
+      onClick={closeModal}
+    >
+      <div
+        className="bg-white rounded-2xl w-full max-w-xs overflow-hidden shadow-xl"
+        style={{
+          opacity: modalIn ? 1 : 0,
+          transform: modalIn
+            ? "scale(1) translateY(0)"
+            : "scale(0.95) translateY(12px)",
+          transition: "opacity 250ms ease-out, transform 250ms ease-out",
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="px-6 pt-7 pb-5 text-center">
+          <div className="w-14 h-14 bg-sky-50 rounded-full flex items-center justify-center mx-auto mb-4">
+            <span className="text-3xl">👋</span>
           </div>
-          <h2 className="font-semibold text-gray-900">Leave GasGo?</h2>
-          <p className="text-sm text-gray-400 mt-1.5">
-            Are you sure you want to exit?
+          <h2 className="font-bold text-gray-900 text-lg">Leave GasGo?</h2>
+          <p className="text-sm text-gray-400 mt-1.5 leading-relaxed">
+            Are you sure you want to exit the app?
           </p>
         </div>
         <div className="flex gap-3 px-6 pb-6">
           <button
-            onClick={() => setExitModal(false)}
-            className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-medium hover:bg-gray-50 cursor-pointer transition-colors"
+            onClick={closeModal}
+            className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50 cursor-pointer transition-colors"
           >
             Stay
           </button>
           <button
             onClick={() => {
-              setExitModal(false);
-              // Go back for real — let browser handle it
-              window.history.go(-2);
+              closeModal();
+              // Navigate away for real after modal closes
+              setTimeout(() => window.history.go(-2), 260);
             }}
-            className="flex-1 py-2.5 bg-gray-800 text-white rounded-xl text-sm font-medium hover:bg-gray-900 cursor-pointer transition-colors"
+            className="flex-1 py-2.5 bg-gray-900 text-white rounded-xl text-sm font-semibold hover:bg-gray-800 cursor-pointer transition-colors"
           >
             Exit
           </button>
