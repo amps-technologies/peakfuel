@@ -33,13 +33,16 @@ export default function CartSync() {
     }
   };
 
-  console.log("test");
-
   // Save cart to Supabase (debounced to avoid too many writes)
-  const saveServerCart = (uid: string, cartItems: typeof items) => {
+  const saveServerCart = (
+    uid: string,
+    cartItems: typeof items,
+    immediate = false,
+  ) => {
     if (saveTimeout.current) clearTimeout(saveTimeout.current);
+    const delay = immediate ? 0 : 1000;
     saveTimeout.current = setTimeout(async () => {
-      if (isLoading.current) return; // don't save while loading
+      if (isLoading.current) return;
       try {
         await supabase.from("carts").upsert(
           {
@@ -49,10 +52,8 @@ export default function CartSync() {
           },
           { onConflict: "user_id" },
         );
-      } catch {
-        // Non-fatal — local cart still works
-      }
-    }, 1000); // debounce 1 second
+      } catch {}
+    }, delay);
   };
 
   // Handle auth state changes
@@ -81,7 +82,9 @@ export default function CartSync() {
   // Save to Supabase whenever items change
   useEffect(() => {
     if (userId && !isLoading.current) {
-      saveServerCart(userId, items);
+      // Save immediately when cart is emptied (after checkout)
+      const immediate = items.length === 0;
+      saveServerCart(userId, items, immediate);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [items, userId]);

@@ -6,6 +6,7 @@ import ToastContainer from "@/components/Toast";
 import CartDrawer from "@/components/CartDrawer";
 import DemoBadge from "@/components/DemoBadge";
 import CartSync from "@/components/CartSync";
+import AndroidBackHandler from "@/components/AndroidBackHandler";
 
 const geist = Geist({ subsets: ["latin"] });
 
@@ -38,6 +39,7 @@ export default function RootLayout({
         </main>
         <CartSync />
         <CartDrawer />
+        <AndroidBackHandler />
         <ToastContainer />
         <DemoBadge />
       </body>
