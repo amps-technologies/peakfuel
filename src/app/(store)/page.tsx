@@ -148,22 +148,36 @@ function ShopContent() {
   }, []);
 
   useEffect(() => {
+    // 1. Create a single, stable instance for this mount lifecycle
     const supabase = createClient();
 
     const fetchProducts = async () => {
-      const { data } = await supabase
-        .from("products")
-        .select("*")
-        .eq("in_stock", true)
-        .order("category", { ascending: true })
-        .order("sort_order", { ascending: true })
-        .order("created_at", { ascending: false });
+      try {
+        const { data, error } = await supabase
+          .from("products")
+          .select("*")
+          .eq("in_stock", true)
+          .order("category", { ascending: true })
+          .order("sort_order", { ascending: true })
+          .order("created_at", { ascending: false });
 
-      setAllProducts((data as Product[]) ?? []);
-      setLoading(false);
+        if (error) {
+          console.error("Supabase Database Fetch Error:", error.message);
+        }
+
+        // Apply state safely
+        setAllProducts((data as Product[]) ?? []);
+      } catch (err) {
+        console.error("Critical Network Connection Interrupted:", err);
+      } finally {
+        // 2. The 'finally' block GUARANTEES that loading turns false,
+        // ensuring your layout can never get trapped on the skeleton screen.
+        setLoading(false);
+      }
     };
+
     fetchProducts();
-  }, []);
+  }, []); // Keeps dependencies clean and limits execution to exactly one run per page mount
 
   const products = useMemo(() => {
     let list = allProducts;
