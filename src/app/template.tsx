@@ -1,24 +1,25 @@
 "use client";
-import { useEffect, useState } from "react";
+
+import { useEffect } from "react";
+import { usePathname } from "next/navigation";
 
 export default function Template({ children }: { children: React.ReactNode }) {
-  const [mounted, setMounted] = useState(false);
+  const pathname = usePathname();
 
   useEffect(() => {
-    // Small delay so the animation always plays after mount
-    const t = setTimeout(() => setMounted(true), 10);
-    return () => clearTimeout(t);
-  }, []);
+    // 1. Immediately reset the window viewport back to coordinates (0, 0)
+    window.scrollTo({
+      top: 0,
+      left: 0,
+      behavior: "instant", // 'instant' resets it instantly before the entry animation paints
+    });
 
-  return (
-    <div
-      style={{
-        opacity: mounted ? 1 : 0,
-        transform: mounted ? "translateY(0)" : "translateY(6px)",
-        transition: "opacity 220ms ease-out, transform 220ms ease-out",
-      }}
-    >
-      {children}
-    </div>
-  );
+    // 2. Safely capture scroll overflows for full-width layout wrapper containers
+    const mainContent = document.querySelector("main");
+    if (mainContent) {
+      mainContent.scrollTop = 0;
+    }
+  }, [pathname]); // Runs every single time the user clicks a link and the pathname changes
+
+  return <div className="animate-fade-in">{children}</div>;
 }
