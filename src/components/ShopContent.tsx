@@ -130,14 +130,24 @@ export default function ShopContent() {
   const { category, searchQuery } = filters;
 
   useEffect(() => {
-    const timer = setTimeout(() => {
+    const syncUrlFilters = () => {
       const params = new URLSearchParams(window.location.search);
       setFilters({
         category: params.get("category") ?? "",
         searchQuery: params.get("q") ?? "",
       });
-    }, 0);
-    return () => clearTimeout(timer);
+    };
+
+    // Run once safely on mount to capture cold starting parameters
+    const timer = setTimeout(syncUrlFilters, 0);
+
+    // Listen to high-speed typing updates dispatched from the navbar search box
+    window.addEventListener("gasgo-search-sync", syncUrlFilters);
+
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("gasgo-search-sync", syncUrlFilters);
+    };
   }, []);
 
   useEffect(() => {
@@ -269,8 +279,9 @@ export default function ShopContent() {
       </div>
 
       {/* Search Metadata Info */}
+      {/* Search result info message overlay inside ShopContent.tsx */}
       {searchQuery && (
-        <div className="flex items-center gap-2 mb-4 text-sm text-gray-500">
+        <div className="flex items-center gap-2 mb-4 text-sm text-gray-500 animate-fade-in">
           <span>
             {products.length} result{products.length !== 1 ? "s" : ""} for
             <strong className="text-gray-800 ml-1">
@@ -281,18 +292,24 @@ export default function ShopContent() {
             onClick={() => {
               setIsChanging(true);
               setTimeout(() => {
+                // 1. Reset your local grid filters config object block
                 setFilters((prev) => ({ ...prev, searchQuery: "" }));
-                const params = new URLSearchParams();
-                if (category) params.set("category", category);
-                window.history.replaceState(
-                  null,
-                  "",
-                  params.toString() ? `/?${params.toString()}` : "/",
-                );
+
+                // 2. Synchronize URL query strings silently
+                const params = new URLSearchParams(window.location.search);
+                params.delete("q");
+                const newUrl = params.toString()
+                  ? `/?${params.toString()}`
+                  : "/";
+                window.history.replaceState(null, "", newUrl);
+
+                // 3. Dispatch global signal informing Navbar to clear out its text box inputs instantly
+                window.dispatchEvent(new CustomEvent("gasgo-search-clear"));
+
                 setIsChanging(false);
               }, 120);
             }}
-            className="ml-1 text-sky-500 hover:text-sky-600 cursor-pointer"
+            className="ml-1 text-sky-500 hover:text-sky-600 font-semibold cursor-pointer transition-colors"
           >
             Clear
           </button>
