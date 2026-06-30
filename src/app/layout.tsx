@@ -46,7 +46,7 @@ export default function RootLayout({
         <ToastContainer />
         <DemoBadge />
         <footer className="mt-12 py-6 border-t border-gray-100 text-center space-x-4 text-xs text-gray-400">
-          <span>© 2026 GasGo Demo Platform</span>
+          <span>© 2026 Peak Fuel Demo Platform</span>
           <Link
             href="/privacy"
             className="hover:text-sky-500 transition-colors"

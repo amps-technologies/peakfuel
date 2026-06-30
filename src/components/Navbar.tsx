@@ -180,12 +180,16 @@ function DynamicBackButton() {
   const isAuthPage = pathname === "/auth";
   const isProfilePage = pathname === "/profile";
   const isAdminPage = pathname === "/admin";
+  const isPrivacyPage = pathname === "/privacy";
+  const isTermPage = pathname === "/terms";
 
   const shouldShow =
     isProductDetail ||
     isTrackPage ||
     isAuthPage ||
     isProfilePage ||
+    isPrivacyPage ||
+    isTermPage ||
     isAdminPage;
 
   if (!shouldShow) return null;
