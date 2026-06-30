@@ -6,6 +6,7 @@ import ProductCard from "@/components/ProductCard";
 import { Flame, Truck, Shield, ChevronRight, ChevronDown } from "lucide-react";
 import type { Product } from "@/types";
 import Image from "next/image";
+import Link from "next/link";
 
 const catMap: Record<string, string> = {
   tanks: "tank",

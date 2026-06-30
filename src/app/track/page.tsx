@@ -107,7 +107,7 @@ export default function TrackLookupPage() {
   };
 
   return (
-    <div className="max-w-lg mx-auto px-4 py-8 space-y-5">
+    <div className="max-w-lg h-screen mx-auto px-4 py-8 space-y-5">
       {/* Header */}
       <div className="text-center">
         <div className="w-12 h-12 bg-sky-100 rounded-full flex items-center justify-center mx-auto mb-3">

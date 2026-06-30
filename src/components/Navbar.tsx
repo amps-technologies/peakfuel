@@ -218,13 +218,57 @@ export default function Navbar() {
   const count = items.reduce((sum, i) => sum + i.quantity, 0);
 
   // Authenticated Profile State Listeners
+  // useEffect(() => {
+  //   let active = true;
+  //   supabase.auth.getUser().then(async ({ data }) => {
+  //     if (active) {
+  //       setUser(data.user);
+  //       setMounted(true);
+  //       if (data.user) {
+  //         const { data: profile } = await supabase
+  //           .from("profiles")
+  //           .select("role")
+  //           .eq("id", data.user.id)
+  //           .single();
+  //         if (active) setUserRole(profile?.role ?? null);
+  //       }
+  //     }
+  //   });
+
+  //   const { data: sub } = supabase.auth.onAuthStateChange(
+  //     async (_e, session) => {
+  //       setUser(session?.user ?? null);
+  //       if (session?.user) {
+  //         const { data: profile } = await supabase
+  //           .from("profiles")
+  //           .select("role")
+  //           .eq("id", session.user.id)
+  //           .single();
+  //         setUserRole(profile?.role ?? null);
+  //       } else {
+  //         setUserRole(null);
+  //       }
+  //     },
+  //   );
+
+  //   return () => {
+  //     active = false;
+  //     sub.subscription.unsubscribe();
+  //   };
+  // }, [supabase]);
+
+  // Authenticated Profile State Listeners with Cold-Start Protection
   useEffect(() => {
     let active = true;
-    supabase.auth.getUser().then(async ({ data }) => {
-      if (active) {
-        setUser(data.user);
-        setMounted(true);
-        if (data.user) {
+
+    const initializeAuth = async () => {
+      try {
+        const { data, error } = await supabase.auth.getUser();
+
+        if (error) throw error;
+
+        if (active && data?.user) {
+          setUser(data.user);
           const { data: profile } = await supabase
             .from("profiles")
             .select("role")
@@ -232,11 +276,21 @@ export default function Navbar() {
             .single();
           if (active) setUserRole(profile?.role ?? null);
         }
+      } catch (err) {
+        console.warn(
+          "Auth initialization skipped or timed out (DB may be asleep). Defaulting to guest view.",
+        );
+      } finally {
+        // Gaurantee the sign-in button shimmers resolve into a usable button frame
+        if (active) setMounted(true);
       }
-    });
+    };
+
+    initializeAuth();
 
     const { data: sub } = supabase.auth.onAuthStateChange(
       async (_e, session) => {
+        if (!active) return;
         setUser(session?.user ?? null);
         if (session?.user) {
           const { data: profile } = await supabase
@@ -244,9 +298,9 @@ export default function Navbar() {
             .select("role")
             .eq("id", session.user.id)
             .single();
-          setUserRole(profile?.role ?? null);
+          if (active) setUserRole(profile?.role ?? null);
         } else {
-          setUserRole(null);
+          if (active) setUserRole(null);
         }
       },
     );

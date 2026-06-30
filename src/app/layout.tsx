@@ -7,6 +7,8 @@ import CartDrawer from "@/components/CartDrawer";
 import DemoBadge from "@/components/DemoBadge";
 import CartSync from "@/components/CartSync";
 import AndroidBackHandler from "@/components/AndroidBackHandler";
+import Link from "next/link";
+import DemoWelcomeModal from "@/components/DemoWelcomeModal";
 
 const geist = Geist({ subsets: ["latin"] });
 
@@ -39,9 +41,22 @@ export default function RootLayout({
         </main>
         <CartSync />
         <CartDrawer />
+        <DemoWelcomeModal />
         <AndroidBackHandler />
         <ToastContainer />
         <DemoBadge />
+        <footer className="mt-12 py-6 border-t border-gray-100 text-center space-x-4 text-xs text-gray-400">
+          <span>© 2026 GasGo Demo Platform</span>
+          <Link
+            href="/privacy"
+            className="hover:text-sky-500 transition-colors"
+          >
+            Privacy Policy
+          </Link>
+          <Link href="/terms" className="hover:text-sky-500 transition-colors">
+            Terms of Service
+          </Link>
+        </footer>
       </body>
     </html>
   );
