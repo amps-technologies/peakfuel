@@ -45,17 +45,22 @@ export default function RootLayout({
         <AndroidBackHandler />
         <ToastContainer />
         <DemoBadge />
-        <footer className="mt-12 py-6 border-t border-gray-100 text-center space-x-4 text-xs text-gray-400">
+        <footer className="mt-12 md:flex justify-center py-6 border-t border-gray-100 text-center space-x-4 text-xs text-gray-400">
           <span>© 2026 Peak Fuel Demo Platform</span>
-          <Link
-            href="/privacy"
-            className="hover:text-sky-500 transition-colors"
-          >
-            Privacy Policy
-          </Link>
-          <Link href="/terms" className="hover:text-sky-500 transition-colors">
-            Terms of Service
-          </Link>
+          <div className="flex justify-center mt-1 md:mt-0 gap-2">
+            <Link
+              href="/privacy"
+              className="hover:text-sky-500 transition-colors"
+            >
+              Privacy Policy
+            </Link>
+            <Link
+              href="/terms"
+              className="hover:text-sky-500 transition-colors"
+            >
+              Terms of Service
+            </Link>
+          </div>
         </footer>
       </body>
     </html>
