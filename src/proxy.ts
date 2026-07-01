@@ -26,16 +26,7 @@ export async function proxy(request: NextRequest) {
   );
 
   // This refreshes the session and sets cookies
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  // console.log(
-  //   "PROXY - path:",
-  //   request.nextUrl.pathname,
-  //   "- user:",
-  //   user?.email,
-  // );
+  await supabase.auth.getUser();
 
   return supabaseResponse;
 }

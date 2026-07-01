@@ -69,7 +69,10 @@ export default function CheckoutPage() {
         if (profile.full_name) setFullName(profile.full_name);
         if (profile.phone) setPhone(profile.phone);
         if (profile.delivery_address) {
-          setAddress(profile.delivery_address);
+          const cleanAddress = (addr: string) =>
+            addr.replace(/\s*\[.*?\]\s*/g, "").trim();
+          cleanAddress(profile.delivery_address);
+          setAddress(cleanAddress);
           if (profile.delivery_lat) setAddressLat(profile.delivery_lat);
           if (profile.delivery_lng) setAddressLng(profile.delivery_lng);
         }
@@ -136,16 +139,14 @@ export default function CheckoutPage() {
         data: { user },
       } = await supabase.auth.getUser();
       if (user) {
-        await supabase
-          .from("carts")
-          .upsert(
-            {
-              user_id: user.id,
-              items: [],
-              updated_at: new Date().toISOString(),
-            },
-            { onConflict: "user_id" },
-          );
+        await supabase.from("carts").upsert(
+          {
+            user_id: user.id,
+            items: [],
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "user_id" },
+        );
       }
 
       router.push(`/track/${data.order.id}`);
