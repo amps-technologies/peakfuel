@@ -6,20 +6,21 @@ import TrackClient from "./TrackClient";
 export default async function TrackLookupPage() {
   const supabase = await createClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // getClaims() verifies the JWT locally (cached JWKS) — no network call.
+  // proxy.ts already refreshed the session, so we don't need getUser() here.
+  const { data } = await supabase.auth.getClaims();
+  const userId = data?.claims?.sub;
 
   let orders: Order[] = [];
 
-  if (user) {
-    const { data } = await supabase
+  if (userId) {
+    const { data: ordersData } = await supabase
       .from("orders")
       .select("*")
-      .eq("user_id", user.id)
+      .eq("user_id", userId)
       .order("created_at", { ascending: false });
 
-    orders = (data as Order[]) ?? [];
+    orders = (ordersData as Order[]) ?? [];
   }
 
   return <TrackClient initialOrders={orders} />;

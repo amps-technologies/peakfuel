@@ -14,23 +14,24 @@ export interface Profile {
 export default async function ProfilePage() {
   const supabase = await createClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // getClaims() verifies the JWT locally (cached JWKS) — no network call.
+  // proxy.ts already refreshed the session, so we don't need getUser() here.
+  const { data } = await supabase.auth.getClaims();
+  const claims = data?.claims;
 
-  if (!user) {
+  if (!claims?.sub) {
     redirect("/auth");
   }
 
   const { data: profile } = await supabase
     .from("profiles")
     .select("full_name, phone, delivery_address, role, username")
-    .eq("id", user.id)
+    .eq("id", claims.sub)
     .single();
 
   return (
     <ProfileClient
-      email={user.email ?? null}
+      email={(claims.email as string) ?? null}
       profile={profile as Profile | null}
     />
   );

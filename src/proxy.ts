@@ -30,12 +30,12 @@ export async function proxy(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  console.log(
-    "PROXY - path:",
-    request.nextUrl.pathname,
-    "- user:",
-    user?.email,
-  );
+  // console.log(
+  //   "PROXY - path:",
+  //   request.nextUrl.pathname,
+  //   "- user:",
+  //   user?.email,
+  // );
 
   return supabaseResponse;
 }
